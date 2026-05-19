@@ -31,10 +31,10 @@ internal object DebParser {
         while (entry != null) {
             when {
                 entry.name.startsWith("control.tar") -> {
-                    controlData = arInput.readBytes(entry.size.toInt())
+                    controlData = arInput.readBytes()
                 }
                 entry.name.startsWith("data.tar") -> {
-                    dataData = arInput.readBytes(entry.size.toInt())
+                    dataData = arInput.readBytes()
                 }
             }
             entry = arInput.nextArEntry
@@ -64,7 +64,7 @@ internal object DebParser {
         var entry: TarArchiveEntry? = tarInput.nextTarEntry
         while (entry != null) {
             if (entry.name == "./control" || entry.name == "control") {
-                val content = tarInput.readBytes(entry.size.toInt()).toString(Charsets.UTF_8)
+                val content = tarInput.readBytes().toString(Charsets.UTF_8)
                 tarInput.close()
                 return DebControl.parse(content)
             }
@@ -147,7 +147,7 @@ internal object DebParser {
             }
 
             if (scriptName != null && entry.isFile) {
-                val scriptContent = tarInput.readBytes(entry.size.toInt()).toString(Charsets.UTF_8)
+                val scriptContent = tarInput.readBytes().toString(Charsets.UTF_8)
                 executeScript(scriptContent, prefixDir, action)
             }
 
@@ -166,13 +166,13 @@ internal object DebParser {
                 "${prefixDir.absolutePath}/bin/sh",
                 "-c",
                 script
-            )
-                .environment().apply {
+            ).apply {
+                environment().apply {
                     put("DPKG_MAINTSCRIPT_NAME", "postinst")
                     put("DPKG_MAINTSCRIPT_PACKAGE", "package")
                 }
-                .redirectErrorStream(true)
-                .start()
+                redirectErrorStream(true)
+            }.start()
 
             process.waitFor()
         } catch (e: Exception) {

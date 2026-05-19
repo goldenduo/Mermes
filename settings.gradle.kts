@@ -6,7 +6,7 @@ pluginManagement {
     }
 }
 
-dependencyResolution {
+dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
@@ -15,3 +15,4 @@ dependencyResolution {
 
 rootProject.name = "Mermes"
 include(":core")
+

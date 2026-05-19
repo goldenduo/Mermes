@@ -148,8 +148,6 @@ object TerminalManager {
      */
     fun writeToSession(session: TerminalSession, data: ByteArray) {
         try {
-            FileOutputStream(session.masterFd.toString()).use { /* This won't work */ }
-            // Use native write instead
             writeToFd(session.masterFd, data)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write to session ${session.id}", e)

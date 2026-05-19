@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("mermes-core")
 
+enable_language(ASM)
+
 # Bootstrap library - embeds bootstrap zip files
 add_library(
     mermes-bootstrap
@@ -13,6 +15,12 @@ target_link_libraries(
     mermes-bootstrap
     log
     android
+)
+
+target_include_directories(
+    mermes-bootstrap
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Terminal library - PTY and process management

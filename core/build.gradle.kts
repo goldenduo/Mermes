@@ -10,7 +10,9 @@ android {
     defaultConfig {
         minSdk = 24
 
+        testApplicationId = "com.hermes"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["uninstall"] = "false"
         consumerProguardFiles("consumer-rules.pro")
 
         ndk {
@@ -81,7 +83,7 @@ tasks.register("copyBootstrapFiles") {
 
 // Ensure bootstrap files are copied before native build
 tasks.configureEach {
-    if (name.startsWith("externalNativeBuild")) {
+    if (name.startsWith("buildCMake") || name.startsWith("configureCMake")) {
         dependsOn("copyBootstrapFiles")
     }
 }
