@@ -66,9 +66,15 @@ def convert_bootstrap(input_path, output_path):
         # Step 3: Create new zip
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zout:
             for root, dirs, filenames in os.walk(extract_dir):
+                # Write directories (especially empty ones)
+                for dname in dirs:
+                    dpath = os.path.join(root, dname)
+                    arcname = os.path.relpath(dpath, extract_dir).replace("\\", "/") + "/"
+                    zout.write(dpath, arcname)
+                # Write files
                 for fname in filenames:
                     fpath = os.path.join(root, fname)
-                    arcname = os.path.relpath(fpath, extract_dir)
+                    arcname = os.path.relpath(fpath, extract_dir).replace("\\", "/")
                     zout.write(fpath, arcname)
 
         return files_changed
