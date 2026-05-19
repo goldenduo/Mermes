@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.BaseInputConnection
@@ -78,10 +79,52 @@ class TerminalView @JvmOverloads constructor(
     private var isSelecting = false
     private var lastTouchX: Float? = null
     private var lastTouchY: Float? = null
+    private var draggingHandle = 0 // 0: none, 1: start, 2: end
+    private var actionMode: android.view.ActionMode? = null
 
     private val selectionPaint = Paint().apply {
         color = 0x600099FF.toInt() // Semi-transparent blue
         style = Paint.Style.FILL
+    }
+
+    private val handlePaint = Paint().apply {
+        color = 0xFF0099FF.toInt() // Vibrant blue
+        isAntiAlias = true
+        style = Paint.Style.FILL
+    }
+
+    fun startSelectionMode() {
+        isSelecting = true
+        if (actionMode == null) {
+            actionMode = startActionMode(object : android.view.ActionMode.Callback {
+                override fun onCreateActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean {
+                    menu.add(0, 1, 0, android.R.string.copy)
+                    return true
+                }
+                
+                override fun onPrepareActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean {
+                    return false
+                }
+                
+                override fun onActionItemClicked(mode: android.view.ActionMode, item: android.view.MenuItem): Boolean {
+                    if (item.itemId == 1) {
+                        val text = copySelection()
+                        if (text != null) {
+                            onTextSelected?.invoke(text)
+                        }
+                        mode.finish()
+                        return true
+                    }
+                    return false
+                }
+                
+                override fun onDestroyActionMode(mode: android.view.ActionMode) {
+                    actionMode = null
+                    isSelecting = false
+                    invalidate()
+                }
+            })
+        }
     }
 
     init {
@@ -96,7 +139,7 @@ class TerminalView @JvmOverloads constructor(
                     selectionStartRow = row
                     selectionEndCol = col
                     selectionEndRow = row
-                    isSelecting = true
+                    startSelectionMode()
                     invalidate()
                     true
                 } else false
@@ -266,6 +309,17 @@ class TerminalView @JvmOverloads constructor(
                     }
                 }
             }
+
+            // Draw selection handles
+            val (sRow, sCol, eRow, eCol) = getNormalizedSelection()
+            val x1 = sCol * r.fontWidth
+            val y1 = (sRow + 1) * r.fontLineSpacing
+            val x2 = (eCol + 1) * r.fontWidth
+            val y2 = (eRow + 1) * r.fontLineSpacing
+
+            val radius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8f, context.resources.displayMetrics)
+            canvas.drawCircle(x1, y1, radius, handlePaint)
+            canvas.drawCircle(x2, y2, radius, handlePaint)
         }
     }
 
@@ -273,24 +327,53 @@ class TerminalView @JvmOverloads constructor(
         val action = event.action
         lastTouchX = event.x
         lastTouchY = event.y
+        val r = renderer
 
-        if (isSelecting) {
-            if (action == android.view.MotionEvent.ACTION_MOVE) {
-                val r = renderer
-                if (r != null) {
-                    val (col, row) = r.coordToColRow(event.x, event.y)
+        if (isSelecting && r != null) {
+            if (action == android.view.MotionEvent.ACTION_DOWN) {
+                val (sRow, sCol, eRow, eCol) = getNormalizedSelection()
+                val x1 = sCol * r.fontWidth
+                val y1 = (sRow + 1) * r.fontLineSpacing
+                val x2 = (eCol + 1) * r.fontWidth
+                val y2 = (eRow + 1) * r.fontLineSpacing
+
+                val dx1 = event.x - x1
+                val dy1 = event.y - y1
+                val dist1 = Math.sqrt((dx1 * dx1 + dy1 * dy1).toDouble())
+
+                val dx2 = event.x - x2
+                val dy2 = event.y - y2
+                val dist2 = Math.sqrt((dx2 * dx2 + dy2 * dy2).toDouble())
+
+                val threshold = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48f, context.resources.displayMetrics)
+
+                if (dist1 < threshold && dist1 < dist2) {
+                    draggingHandle = 1
+                    return true
+                } else if (dist2 < threshold) {
+                    draggingHandle = 2
+                    return true
+                } else {
+                    // Touch outside handles: dismiss selection
+                    actionMode?.finish()
+                    isSelecting = false
+                    invalidate()
+                }
+            } else if (action == android.view.MotionEvent.ACTION_MOVE) {
+                val (col, row) = r.coordToColRow(event.x, event.y)
+                if (draggingHandle == 1) {
+                    selectionStartCol = col
+                    selectionStartRow = row
+                    invalidate()
+                    return true
+                } else if (draggingHandle == 2) {
                     selectionEndCol = col
                     selectionEndRow = row
                     invalidate()
+                    return true
                 }
-                return true
             } else if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
-                val copiedText = copySelection()
-                if (copiedText != null) {
-                    onTextSelected?.invoke(copiedText)
-                }
-                isSelecting = false
-                invalidate()
+                draggingHandle = 0
                 return true
             }
         }
