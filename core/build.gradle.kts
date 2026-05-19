@@ -10,7 +10,7 @@ android {
     defaultConfig {
         minSdk = 24
 
-        testApplicationId = "com.hermes"
+        testApplicationId = "com.mermes"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["uninstall"] = "false"
         consumerProguardFiles("consumer-rules.pro")
