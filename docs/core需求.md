@@ -164,6 +164,48 @@
 - 支持增量安装（跳过已安装的包）
 - 安装失败时的回滚机制
 
+### 4. 伪终端 GUI 交互界面
+
+**功能描述**:
+在 core 模块中实现伪终端的 Android View 组件，参考 Termux 的 TerminalView/TerminalEmulator/TerminalRenderer 架构，提供可嵌入的终端交互界面。
+
+**参考文档**: `docs/ex/伪终端界面实现.md`
+
+**实现要求**:
+- 遵循 MVC 架构：TerminalEmulator（模型）、TerminalView（视图）、TerminalRenderer（渲染）
+- 支持 ANSI 转义序列解析（颜色、光标移动、清屏等）
+- 支持中文等双宽字符（使用 WcWidth 计算字符宽度）
+- 支持软键盘输入和物理键盘输入
+- 支持文本选择和复制粘贴
+- 光标闪烁动画，界面不可见时停止以节省电量
+
+**核心组件**:
+
+#### 4.1 TerminalEmulator（模型层）
+- 维护终端屏幕缓冲区（TerminalBuffer / TerminalRow）
+- 解析 ANSI 转义序列，更新字符内容和样式
+- 管理光标位置、滚动区域
+- 字符样式：前景色、背景色、粗体、下划线、反色
+
+#### 4.2 TerminalView（视图层）
+- 继承 Android View
+- 处理 onSizeChanged 计算行列数
+- 委托 TerminalRenderer 绘制
+- 捕获键盘事件（onKeyDown/onKeyUp）和触摸事件
+- 输入法连接（InputConnection）支持软键盘
+- 文本选择与坐标转换（像素 ↔ 行列）
+
+#### 4.3 TerminalRenderer（渲染引擎）
+- 计算字体度量（fontWidth、fontLineSpacing）
+- 优化渲染：合并相同样式连续字符为 Text Run，批量 canvas.drawTextRun()
+- 绘制光标和选中文本高亮
+- 处理中英文字体宽度不匹配的 Scale 修正
+
+#### 4.4 与 TerminalSession 集成
+- TerminalView 绑定 TerminalSession
+- 接收输出 → TerminalEmulator 解析 → TerminalView 重绘
+- 用户输入 → 转义序列 → TerminalManager.writeToSession()
+
 ## 非功能性需求
 
 ### 性能要求

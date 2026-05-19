@@ -355,6 +355,186 @@ internal object NativeTerminalLib {
 
 ---
 
+### 2.5 TerminalView
+
+伪终端 Android View 组件。
+
+```kotlin
+package com.mermes.core.terminal.view
+
+/**
+ * 伪终端视图
+ */
+class TerminalView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
+
+    /**
+     * 绑定终端会话
+     *
+     * @param session 终端会话
+     */
+    fun attachSession(session: TerminalSession)
+
+    /**
+     * 解绑当前会话
+     */
+    fun detachSession()
+
+    /**
+     * 获取当前绑定的会话
+     */
+    fun getSession(): TerminalSession?
+
+    /**
+     * 设置字体大小（sp）
+     */
+    fun setTextSize(sizeSp: Float)
+
+    /**
+     * 设置字体颜色方案
+     */
+    fun setColorScheme(scheme: TerminalColorScheme)
+
+    /**
+     * 复制选中文本到剪贴板
+     */
+    fun copySelection(): String?
+
+    /**
+     * 粘贴剪贴板内容到终端
+     */
+    fun pasteFromClipboard()
+}
+```
+
+### 2.6 TerminalEmulator
+
+终端模拟器，解析 ANSI 转义序列并维护屏幕状态。
+
+```kotlin
+package com.mermes.core.terminal.view
+
+/**
+ * 终端模拟器
+ */
+class TerminalEmulator(
+    private val columns: Int,
+    private val rows: Int
+) {
+    /**
+     * 处理终端输出数据
+     *
+     * @param data 输出字节数组
+     */
+    fun append(data: ByteArray)
+
+    /**
+     * 获取指定行的内容
+     *
+     * @param row 行号 (0-based)
+     * @return 行数据
+     */
+    fun getLine(row: Int): TerminalRow
+
+    /**
+     * 获取光标列位置
+     */
+    fun getCursorCol(): Int
+
+    /**
+     * 获取光标行位置
+     */
+    fun getCursorRow(): Int
+
+    /**
+     * 调整终端大小
+     *
+     * @param columns 新列数
+     * @param rows 新行数
+     */
+    fun resize(columns: Int, rows: Int)
+
+    /**
+     * 重置终端状态
+     */
+    fun reset()
+}
+```
+
+### 2.7 TerminalRenderer
+
+终端渲染引擎。
+
+```kotlin
+package com.mermes.core.terminal.view
+
+/**
+ * 终端渲染器
+ */
+class TerminalRenderer(
+    private val context: Context,
+    private val emulator: TerminalEmulator
+) {
+    /**
+     * 渲染终端内容到 Canvas
+     *
+     * @param canvas 目标画布
+     * @param cursorVisible 光标是否可见
+     */
+    fun render(canvas: Canvas, cursorVisible: Boolean)
+
+    /**
+     * 设置字体大小
+     *
+     * @param sizeSp 字体大小 (sp)
+     */
+    fun setTextSize(sizeSp: Float)
+
+    /**
+     * 获取字符宽度（像素）
+     */
+    fun getFontWidth(): Float
+
+    /**
+     * 获取行高（像素）
+     */
+    fun getFontLineSpacing(): Float
+
+    /**
+     * 将屏幕坐标转换为终端行列
+     *
+     * @param x 屏幕 x 坐标
+     * @param y 屏幕 y 坐标
+     * @return Pair<col, row>
+     */
+    fun coordToColRow(x: Float, y: Float): Pair<Int, Int>
+}
+```
+
+### 2.8 TerminalColorScheme
+
+终端颜色方案。
+
+```kotlin
+package com.mermes.core.terminal.view
+
+/**
+ * 终端颜色方案
+ */
+data class TerminalColorScheme(
+    val foreground: Int,    // 默认前景色
+    val background: Int,    // 默认背景色
+    val cursor: Int,        // 光标颜色
+    val selection: Int,     // 选中背景色
+    val ansiColors: IntArray // 16 色 ANSI 调色板
+)
+```
+
+---
+
 ## 3. Deb 包安装接口
 
 ### 3.1 DebInstaller

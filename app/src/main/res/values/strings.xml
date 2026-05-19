@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mermes</string>
+    <string name="splash_installing">正在安装环境，请稍候…</string>
+    <string name="splash_bootstrap">正在安装 bootstrap…</string>
+    <string name="splash_deb">正在安装 %1$s (%2$d/%3$d)…</string>
+    <string name="splash_done">安装完成，正在启动…</string>
+    <string name="splash_bootstrap_failed">Bootstrap 安装失败，已进入安全模式</string>
+    <string name="failsafe_notice">Bootstrap 安装失败，当前为安全模式（/system/bin/sh）</string>
+</resources>

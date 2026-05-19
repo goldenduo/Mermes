@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ListPreference
+        android:key="font_size"
+        android:title="字体大小"
+        android:entries="@array/font_size_entries"
+        android:entryValues="@array/font_size_values"
+        android:defaultValue="14" />
+
+    <ListPreference
+        android:key="color_theme"
+        android:title="颜色主题"
+        android:entries="@array/color_theme_entries"
+        android:entryValues="@array/color_theme_values"
+        android:defaultValue="default" />
+
+    <ListPreference
+        android:key="cursor_style"
+        android:title="光标样式"
+        android:entries="@array/cursor_style_entries"
+        android:entryValues="@array/cursor_style_values"
+        android:defaultValue="block" />
+
+</PreferenceScreen>

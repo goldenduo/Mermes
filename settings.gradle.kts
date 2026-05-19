@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Mermes"
 include(":core")
+include(":app")
 

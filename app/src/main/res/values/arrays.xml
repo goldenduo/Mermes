@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="font_size_entries">
+        <item>10sp</item>
+        <item>12sp</item>
+        <item>14sp</item>
+        <item>16sp</item>
+        <item>18sp</item>
+        <item>20sp</item>
+        <item>24sp</item>
+    </string-array>
+    <string-array name="font_size_values">
+        <item>10</item>
+        <item>12</item>
+        <item>14</item>
+        <item>16</item>
+        <item>18</item>
+        <item>20</item>
+        <item>24</item>
+    </string-array>
+
+    <string-array name="color_theme_entries">
+        <item>默认（深色）</item>
+        <item>浅色</item>
+    </string-array>
+    <string-array name="color_theme_values">
+        <item>default</item>
+        <item>light</item>
+    </string-array>
+
+    <string-array name="cursor_style_entries">
+        <item>块状</item>
+        <item>下划线</item>
+        <item>竖线</item>
+    </string-array>
+    <string-array name="cursor_style_values">
+        <item>block</item>
+        <item>underline</item>
+        <item>bar</item>
+    </string-array>
+</resources>
