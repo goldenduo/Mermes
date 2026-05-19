@@ -65,7 +65,12 @@ class TerminalView @JvmOverloads constructor(
         }
 
         override fun onSessionFinished(session: TerminalSession, exitCode: Int) {
-            // Session ended
+            val emu = emulator
+            if (emu != null) {
+                val msg = "\r\n[Process completed (code $exitCode)]\r\n"
+                emu.append(msg.toByteArray())
+                post { invalidate() }
+            }
         }
     }
 

@@ -142,6 +142,7 @@ Java_com_mermes_core_terminal_NativeTerminalLib_createSubprocess(
 
         // Change working directory
         if (chdir(cwd_path) != 0) {
+            fprintf(stderr, "\r\nchdir failed for %s: %s\r\n", cwd_path, strerror(errno));
             _exit(1);
         }
 
@@ -149,6 +150,7 @@ Java_com_mermes_core_terminal_NativeTerminalLib_createSubprocess(
         execvp(exe_path, argv);
 
         // execvp only returns on error
+        fprintf(stderr, "\r\nexecvp failed for %s: %s\r\n", exe_path, strerror(errno));
         _exit(1);
     }
 
@@ -269,10 +271,13 @@ Java_com_mermes_core_terminal_NativeTerminalLib_readFromFd(
     (*env)->ReleaseByteArrayElements(env, buffer, buf, 0);
 
     if (n < 0) {
-        if (errno == EAGAIN || errno == EIO) {
-            return 0; // No data available or I/O error
+        if (errno == EAGAIN) {
+            return 0; // No data available
         }
         return -1;
+    }
+    if (n == 0) {
+        return -1; // EOF
     }
 
     return (jint)n;
