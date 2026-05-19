@@ -120,16 +120,19 @@ Java_com_mermes_core_terminal_NativeTerminalLib_createSubprocess(
             _exit(1);
         }
 
+        // Close extra file descriptors (but keep pts for now)
+        int max_fd = sysconf(_SC_OPEN_MAX);
+        for (int fd = 3; fd < max_fd; fd++) {
+            if (fd != pts) close(fd);
+        }
+
         // Redirect stdin/stdout/stderr to slave PTY
         dup2(pts, 0);
         dup2(pts, 1);
         dup2(pts, 2);
 
-        // Close extra file descriptors
-        int max_fd = sysconf(_SC_OPEN_MAX);
-        for (int fd = 3; fd < max_fd; fd++) {
-            close(fd);
-        }
+        // Close the original pts fd if it's not already 0/1/2
+        if (pts > 2) close(pts);
 
         // Clear environment and set new one
         clearenv();

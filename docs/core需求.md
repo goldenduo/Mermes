@@ -175,7 +175,9 @@
 - 遵循 MVC 架构：TerminalEmulator（模型）、TerminalView（视图）、TerminalRenderer（渲染）
 - 支持 ANSI 转义序列解析（颜色、光标移动、清屏等）
 - 支持中文等双宽字符（使用 WcWidth 计算字符宽度）
-- 支持软键盘输入和物理键盘输入
+- 支持软键盘输入和物理键盘输入，支持发送控制键（Ctrl、Esc、上下左右等）
+- 支持显示（召唤）与隐藏（关闭）软键盘
+- 键盘变化时，UI 视图必须自适应变化（触发尺寸重算与底层 PTY 行列自动 resize）
 - 支持文本选择和复制粘贴
 - 光标闪烁动画，界面不可见时停止以节省电量
 
@@ -189,9 +191,10 @@
 
 #### 4.2 TerminalView（视图层）
 - 继承 Android View
-- 处理 onSizeChanged 计算行列数
+- 处理 onSizeChanged 计算行列数，并在键盘弹出/收起等尺寸变化时正确触发 resize，调整底层 PTY 窗口大小
 - 委托 TerminalRenderer 绘制
-- 捕获键盘事件（onKeyDown/onKeyUp）和触摸事件
+- 捕获键盘事件（onKeyDown/onKeyUp）和触摸事件，支持 Ctrl 等修饰键的状态维护
+- 提供显示和隐藏软键盘的 API 方法
 - 输入法连接（InputConnection）支持软键盘
 - 文本选择与坐标转换（像素 ↔ 行列）
 

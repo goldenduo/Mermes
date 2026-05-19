@@ -61,7 +61,7 @@ class TerminalFragment : Fragment() {
     fun onBackPressed(): Boolean {
         // Send ESC to terminal
         val session = terminalView?.getSession() ?: return false
-        TerminalManager.writeToSession(session, "".toByteArray())
+        TerminalManager.writeToSession(session, "\u001B".toByteArray())
         return true
     }
 

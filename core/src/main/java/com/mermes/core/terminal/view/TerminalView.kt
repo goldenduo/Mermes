@@ -57,8 +57,11 @@ class TerminalView @JvmOverloads constructor(
 
     private val sessionCallback = object : TerminalSessionCallback {
         override fun onTextChanged(session: TerminalSession, data: ByteArray) {
-            emulator?.append(data)
-            post { invalidate() }
+            val emu = emulator
+            if (emu != null) {
+                emu.append(data)
+                post { invalidate() }
+            }
         }
 
         override fun onSessionFinished(session: TerminalSession, exitCode: Int) {
@@ -72,11 +75,33 @@ class TerminalView @JvmOverloads constructor(
     }
 
     /**
-     * Attach a terminal session to this view.
+     * Create and attach a new session with default shell.
      */
-    fun attachSession(session: TerminalSession) {
-        detachSession()
+    fun startShellSession() {
+        initEmulator()
+        val session = TerminalManager.createSession(
+            context = context,
+            callback = sessionCallback
+        )
         this.session = session
+        startCursorBlink()
+    }
+
+    /**
+     * Create and attach a failsafe session (/system/bin/sh).
+     */
+    fun startFailsafeSession() {
+        initEmulator()
+        val session = TerminalManager.createFailsafeSession(
+            context = context,
+            callback = sessionCallback
+        )
+        this.session = session
+        startCursorBlink()
+    }
+
+    private fun initEmulator() {
+        detachSession()
 
         val columns = termColumns.coerceAtLeast(80)
         val rows = termRows.coerceAtLeast(24)
@@ -89,30 +114,6 @@ class TerminalView @JvmOverloads constructor(
         renderer = ren
 
         emu.onUpdate = { post { invalidate() } }
-
-        startCursorBlink()
-    }
-
-    /**
-     * Create and attach a new session with default shell.
-     */
-    fun startShellSession() {
-        val session = TerminalManager.createSession(
-            context = context,
-            callback = sessionCallback
-        )
-        attachSession(session)
-    }
-
-    /**
-     * Create and attach a failsafe session (/system/bin/sh).
-     */
-    fun startFailsafeSession() {
-        val session = TerminalManager.createFailsafeSession(
-            context = context,
-            callback = sessionCallback
-        )
-        attachSession(session)
     }
 
     /**
@@ -174,6 +175,10 @@ class TerminalView @JvmOverloads constructor(
                 sendChar('\t')
                 return true
             }
+            KeyEvent.KEYCODE_ESCAPE -> {
+                sendChar('\u001B')
+                return true
+            }
             KeyEvent.KEYCODE_DPAD_UP -> sendEscape("[A")
             KeyEvent.KEYCODE_DPAD_DOWN -> sendEscape("[B")
             KeyEvent.KEYCODE_DPAD_RIGHT -> sendEscape("[C")
@@ -203,7 +208,7 @@ class TerminalView @JvmOverloads constructor(
 
     private fun sendEscape(seq: String) {
         session?.let {
-            TerminalManager.writeToSession(it, "$seq".toByteArray())
+            TerminalManager.writeToSession(it, "\u001B$seq".toByteArray())
         }
     }
 
@@ -285,9 +290,8 @@ class TerminalView @JvmOverloads constructor(
     /**
      * Copy selected text to clipboard (placeholder — selection not yet implemented).
      */
-    fun copyToClipboard(text: String) {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("terminal", text))
+    fun copySelection(): String? {
+        return null
     }
 
     /**
@@ -310,5 +314,21 @@ class TerminalView @JvmOverloads constructor(
     fun showKeyboard() {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(this, 0)
+    }
+
+    /**
+     * Hide soft keyboard.
+     */
+    fun hideKeyboard() {
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(windowToken, 0)
+    }
+
+    /**
+     * Send control key sequence.
+     */
+    fun sendControlKey(keyCode: Int) {
+        val event = KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, KeyEvent.META_CTRL_ON)
+        onKeyDown(keyCode, event)
     }
 }

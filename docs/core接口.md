@@ -407,6 +407,23 @@ class TerminalView @JvmOverloads constructor(
      * 粘贴剪贴板内容到终端
      */
     fun pasteFromClipboard()
+
+    /**
+     * 召唤（显示）软键盘
+     */
+    fun showKeyboard()
+
+    /**
+     * 关闭（隐藏）软键盘
+     */
+    fun hideKeyboard()
+
+    /**
+     * 模拟发送控制键（如 Ctrl+C, 上下左右）
+     *
+     * @param keyCode 虚拟键码
+     */
+    fun sendControlKey(keyCode: Int)
 }
 ```
 
