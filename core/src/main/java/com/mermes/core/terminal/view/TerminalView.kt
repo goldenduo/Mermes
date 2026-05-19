@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
@@ -36,6 +37,20 @@ class TerminalView @JvmOverloads constructor(
     private var cursorBlinkRunnable: Runnable? = null
     private val cursorBlinkRate = 500L // ms
 
+    // Modifier states for virtual keys
+    var isCtrlToggled = false
+        set(value) {
+            field = value
+            onModifierStatusChanged?.invoke(isCtrlToggled, isAltToggled)
+        }
+    var isAltToggled = false
+        set(value) {
+            field = value
+            onModifierStatusChanged?.invoke(isCtrlToggled, isAltToggled)
+        }
+    var onModifierStatusChanged: ((ctrl: Boolean, alt: Boolean) -> Unit)? = null
+    var onTextSelected: ((String) -> Unit)? = null
+
     var colorScheme: TerminalColorScheme = TerminalColorScheme.DEFAULT
         set(value) {
             field = value
@@ -54,6 +69,40 @@ class TerminalView @JvmOverloads constructor(
     // Terminal dimensions
     private var termColumns = 0
     private var termRows = 0
+
+    // Text selection variables
+    private var selectionStartCol = -1
+    private var selectionStartRow = -1
+    private var selectionEndCol = -1
+    private var selectionEndRow = -1
+    private var isSelecting = false
+    private var lastTouchX: Float? = null
+    private var lastTouchY: Float? = null
+
+    private val selectionPaint = Paint().apply {
+        color = 0x600099FF.toInt() // Semi-transparent blue
+        style = Paint.Style.FILL
+    }
+
+    init {
+        setOnLongClickListener {
+            val lx = lastTouchX
+            val ly = lastTouchY
+            if (lx != null && ly != null) {
+                val r = renderer
+                if (r != null) {
+                    val (col, row) = r.coordToColRow(lx, ly)
+                    selectionStartCol = col
+                    selectionStartRow = row
+                    selectionEndCol = col
+                    selectionEndRow = row
+                    isSelecting = true
+                    invalidate()
+                    true
+                } else false
+            } else false
+        }
+    }
 
     private val sessionCallback = object : TerminalSessionCallback {
         override fun onTextChanged(session: TerminalSession, data: ByteArray) {
@@ -157,14 +206,106 @@ class TerminalView @JvmOverloads constructor(
         }
     }
 
+    private data class NormalizedSelection(val sRow: Int, val sCol: Int, val eRow: Int, val eCol: Int)
+
+    private fun getNormalizedSelection(): NormalizedSelection {
+        val sRow: Int
+        val sCol: Int
+        val eRow: Int
+        val eCol: Int
+        
+        if (selectionStartRow < selectionEndRow || 
+            (selectionStartRow == selectionEndRow && selectionStartCol <= selectionEndCol)) {
+            sRow = selectionStartRow
+            sCol = selectionStartCol
+            eRow = selectionEndRow
+            eCol = selectionEndCol
+        } else {
+            sRow = selectionEndRow
+            sCol = selectionEndCol
+            eRow = selectionStartRow
+            eCol = selectionStartCol
+        }
+        return NormalizedSelection(sRow, sCol, eRow, eCol)
+    }
+
+    private fun isCellSelected(col: Int, row: Int): Boolean {
+        if (!isSelecting) return false
+        
+        val (sRow, sCol, eRow, eCol) = getNormalizedSelection()
+        
+        if (row < sRow || row > eRow) return false
+        if (row > sRow && row < eRow) return true
+        if (sRow == eRow) {
+            return col in sCol..eCol
+        }
+        if (row == sRow) {
+            return col >= sCol
+        }
+        if (row == eRow) {
+            return col <= eCol
+        }
+        return false
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        renderer?.render(canvas, cursorVisible)
+        val r = renderer
+        r?.render(canvas, cursorVisible)
+        
+        // Draw selection highlight on top
+        if (isSelecting && termColumns > 0 && termRows > 0 && r != null) {
+            for (row in 0 until termRows) {
+                for (col in 0 until termColumns) {
+                    if (isCellSelected(col, row)) {
+                        canvas.drawRect(
+                            col * r.fontWidth, row * r.fontLineSpacing,
+                            (col + 1) * r.fontWidth, (row + 1) * r.fontLineSpacing,
+                            selectionPaint
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
+        val action = event.action
+        lastTouchX = event.x
+        lastTouchY = event.y
+
+        if (isSelecting) {
+            if (action == android.view.MotionEvent.ACTION_MOVE) {
+                val r = renderer
+                if (r != null) {
+                    val (col, row) = r.coordToColRow(event.x, event.y)
+                    selectionEndCol = col
+                    selectionEndRow = row
+                    invalidate()
+                }
+                return true
+            } else if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
+                val copiedText = copySelection()
+                if (copiedText != null) {
+                    onTextSelected?.invoke(copiedText)
+                }
+                isSelecting = false
+                invalidate()
+                return true
+            }
+        }
+
+        if (action == android.view.MotionEvent.ACTION_DOWN) {
+            requestFocus()
+            showKeyboard()
+        }
+        return super.onTouchEvent(event)
     }
 
     // --- Keyboard input ---
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN) return super.onKeyDown(keyCode, event)
         val session = this.session ?: return super.onKeyDown(keyCode, event)
 
         when (keyCode) {
@@ -188,12 +329,40 @@ class TerminalView @JvmOverloads constructor(
             KeyEvent.KEYCODE_DPAD_DOWN -> sendEscape("[B")
             KeyEvent.KEYCODE_DPAD_RIGHT -> sendEscape("[C")
             KeyEvent.KEYCODE_DPAD_LEFT -> sendEscape("[D")
+            KeyEvent.KEYCODE_MOVE_HOME -> {
+                sendEscape("[H")
+                return true
+            }
+            KeyEvent.KEYCODE_MOVE_END -> {
+                sendEscape("[F")
+                return true
+            }
+            KeyEvent.KEYCODE_PAGE_UP -> {
+                sendEscape("[5~")
+                return true
+            }
+            KeyEvent.KEYCODE_PAGE_DOWN -> {
+                sendEscape("[6~")
+                return true
+            }
             else -> {
                 val ch = event.unicodeChar
                 if (ch != 0) {
                     val c = ch.toChar()
-                    if (event.isCtrlPressed && c in 'a'..'z') {
+                    val ctrl = event.isCtrlPressed || isCtrlToggled
+                    val alt = event.isAltPressed || isAltToggled
+
+                    // Reset toggles after processing a character key
+                    if (isCtrlToggled || isAltToggled) {
+                        isCtrlToggled = false
+                        isAltToggled = false
+                    }
+
+                    if (ctrl && c in 'a'..'z') {
                         sendChar((c - 'a' + 1).toChar())
+                    } else if (alt) {
+                        // Alt+char is sent as ESC followed by the char
+                        sendEscape(c.toString())
                     } else {
                         sendChar(c)
                     }
@@ -208,6 +377,15 @@ class TerminalView @JvmOverloads constructor(
     private fun sendChar(ch: Char) {
         session?.let {
             TerminalManager.writeToSession(it, ch.toString().toByteArray())
+        }
+    }
+
+    /**
+     * Send text directly to the PTY session.
+     */
+    fun sendText(text: String) {
+        session?.let {
+            TerminalManager.writeToSession(it, text.toByteArray())
         }
     }
 
@@ -243,7 +421,9 @@ class TerminalView @JvmOverloads constructor(
         }
 
         override fun sendKeyEvent(event: KeyEvent): Boolean {
-            view.onKeyDown(event.keyCode, event)
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                view.onKeyDown(event.keyCode, event)
+            }
             return true
         }
 
@@ -293,9 +473,45 @@ class TerminalView @JvmOverloads constructor(
     // --- Text selection & clipboard ---
 
     /**
-     * Copy selected text to clipboard (placeholder — selection not yet implemented).
+     * Copy selected text to clipboard.
      */
     fun copySelection(): String? {
+        if (selectionStartCol == -1 || selectionStartRow == -1 || 
+            selectionEndCol == -1 || selectionEndRow == -1) return null
+
+        val emu = emulator ?: return null
+        val (sRow, sCol, eRow, eCol) = getNormalizedSelection()
+        val sb = StringBuilder()
+        
+        for (r in sRow..eRow) {
+            val line = emu.buffer.getScreenRow(r)
+            val startC = if (r == sRow) sCol else 0
+            val endC = if (r == eRow) eCol else emu.columns - 1
+            
+            val rowText = StringBuilder()
+            for (c in startC..endC) {
+                if (c < line.codePoints.size) {
+                    val cp = line.codePoints[c]
+                    if (cp != 0) {
+                        rowText.appendCodePoint(cp)
+                    } else {
+                        rowText.append(' ')
+                    }
+                }
+            }
+            sb.append(rowText.toString().trimEnd())
+            if (r < eRow) {
+                sb.append("\n")
+            }
+        }
+        
+        val selectedText = sb.toString()
+        if (selectedText.isNotEmpty()) {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("terminal_selection", selectedText)
+            clipboard.setPrimaryClip(clip)
+            return selectedText
+        }
         return null
     }
 
@@ -317,8 +533,9 @@ class TerminalView @JvmOverloads constructor(
      * Show soft keyboard.
      */
     fun showKeyboard() {
+        requestFocus()
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.showSoftInput(this, 0)
+        imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
     }
 
     /**
@@ -327,6 +544,19 @@ class TerminalView @JvmOverloads constructor(
     fun hideKeyboard() {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(windowToken, 0)
+    }
+
+    /**
+     * Toggle soft keyboard visibility.
+     */
+    fun toggleKeyboard() {
+        if (isFocused) {
+            hideKeyboard()
+            clearFocus()
+        } else {
+            requestFocus()
+            showKeyboard()
+        }
     }
 
     /**

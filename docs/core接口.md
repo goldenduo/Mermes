@@ -419,11 +419,31 @@ class TerminalView @JvmOverloads constructor(
     fun hideKeyboard()
 
     /**
+     * 切换软键盘显示/隐藏状态
+     */
+    fun toggleKeyboard()
+
+    /**
      * 模拟发送控制键（如 Ctrl+C, 上下左右）
      *
      * @param keyCode 虚拟键码
      */
     fun sendControlKey(keyCode: Int)
+
+    /**
+     * Ctrl 修饰键是否处于锁定状态（用于虚拟键盘组合输入）
+     */
+    var isCtrlToggled: Boolean
+
+    /**
+     * Alt 修饰键是否处于锁定状态（用于虚拟键盘组合输入）
+     */
+    var isAltToggled: Boolean
+
+    /**
+     * 当修饰键锁定状态被消费或改变时触发的回调
+     */
+    var onModifierStatusChanged: ((ctrl: Boolean, alt: Boolean) -> Unit)?
 }
 ```
 
