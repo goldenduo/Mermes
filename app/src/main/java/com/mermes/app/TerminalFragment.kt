@@ -135,6 +135,14 @@ class TerminalFragment : Fragment() {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_RIGHT)
         }
 
+        view.findViewById<Button>(R.id.btnEnter).setOnClickListener {
+            tv.sendControlKey(KeyEvent.KEYCODE_ENTER)
+        }
+
+        view.findViewById<Button>(R.id.btnSpace).setOnClickListener {
+            tv.sendText(" ")
+        }
+
         view.findViewById<Button>(R.id.btnKeyboard).setOnClickListener {
             tv.toggleKeyboard()
         }

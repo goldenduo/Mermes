@@ -1,5 +1,6 @@
 package com.mermes.core.deb
 
+import android.util.Log
 import org.apache.commons.compress.archivers.ar.ArArchiveEntry
 import org.apache.commons.compress.archivers.ar.ArArchiveInputStream
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
@@ -14,6 +15,7 @@ import java.io.FileOutputStream
  * Deb file parser
  */
 internal object DebParser {
+    private const val TAG = "DebParser"
 
     /**
      * Parse deb file
@@ -88,16 +90,36 @@ internal object DebParser {
 
         var entry: TarArchiveEntry? = tarInput.nextTarEntry
         while (entry != null) {
-            val name = entry.name.removePrefix("./")
+            val rawName = entry.name.removePrefix("./")
+            // Strip Termux-style prefix: "data/data/<pkg>/files/usr/" → ""
+            // This ensures files are extracted relative to $PREFIX, not nested
+            val name = stripTermuxPrefix(rawName)
 
             if (name.isNotEmpty()) {
                 val targetFile = File(targetDir, name)
 
                 if (entry.isDirectory) {
                     targetFile.mkdirs()
+                } else if (entry.linkFlag == 50.toByte()) { // 50 = '2' = symlink
+                    // Handle symlinks
+                    targetFile.parentFile?.mkdirs()
+                    if (targetFile.exists() || java.nio.file.Files.isSymbolicLink(targetFile.toPath())) {
+                        targetFile.delete()
+                    }
+                    try {
+                        android.system.Os.symlink(entry.linkName, targetFile.absolutePath)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to create symlink: ${targetFile.absolutePath} -> ${entry.linkName}", e)
+                    }
+                    count++
                 } else {
                     // Ensure parent directory exists
                     targetFile.parentFile?.mkdirs()
+
+                    // Remove existing directory at target path (e.g., dir replaced by symlink in another deb)
+                    if (targetFile.isDirectory) {
+                        targetFile.deleteRecursively()
+                    }
 
                     // Extract file
                     FileOutputStream(targetFile).use { out ->
@@ -108,7 +130,6 @@ internal object DebParser {
                     try {
                         val mode = entry.mode
                         if (mode > 0) {
-                            // Convert Unix permissions to Java File permissions
                             setFilePermissions(targetFile, mode)
                         }
                     } catch (e: Exception) {
@@ -197,6 +218,24 @@ internal object DebParser {
         } catch (e: Exception) {
             // Ignore
         }
+    }
+
+    /**
+     * Strip Termux-style prefix from deb data paths.
+     * Deb files contain paths like "data/data/com.mermes/files/usr/bin/bash".
+     * We need to strip "data/data/<pkg>/files/usr/" to get the relative path "bin/bash".
+     */
+    private fun stripTermuxPrefix(path: String): String {
+        // Match "data/data/<anything>/files/usr/" pattern
+        val prefix = "data/data/"
+        val idx = path.indexOf(prefix)
+        if (idx < 0) return path
+
+        val afterPrefix = path.substring(idx + prefix.length)
+        val filesIdx = afterPrefix.indexOf("/files/usr/")
+        if (filesIdx < 0) return path
+
+        return afterPrefix.substring(filesIdx + "/files/usr/".length)
     }
 }
 

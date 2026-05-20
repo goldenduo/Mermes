@@ -146,8 +146,21 @@ object MermesBootstrap {
 
             // Step 6: Atomic rename staging to prefix
             Log.i(TAG, "Step 6: Moving staging to prefix directory")
+            Log.d(TAG, "  stagingDir: ${stagingDir.absolutePath}, exists=${stagingDir.exists()}, canWrite=${stagingDir.parentFile?.canWrite()}")
+            Log.d(TAG, "  prefixDir:  ${prefixDir.absolutePath}, exists=${prefixDir.exists()}")
+            if (prefixDir.exists()) {
+                Log.w(TAG, "  prefixDir already exists, deleting before rename")
+                prefixDir.deleteRecursively()
+            }
             if (!stagingDir.renameTo(prefixDir)) {
-                throw BootstrapInstallException("Failed to move staging directory to prefix")
+                // Fallback: copy + delete (renameTo fails across different mount points)
+                Log.w(TAG, "  renameTo failed, trying copy+delete fallback")
+                stagingDir.copyRecursively(prefixDir, overwrite = true)
+                stagingDir.deleteRecursively()
+                if (!prefixDir.exists()) {
+                    throw BootstrapInstallException("Failed to move staging directory to prefix (copy fallback also failed)")
+                }
+                Log.i(TAG, "  copy+delete fallback succeeded")
             }
             progressCallback?.invoke(0.9f)
 

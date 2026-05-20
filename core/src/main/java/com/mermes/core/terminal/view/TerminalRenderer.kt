@@ -57,27 +57,39 @@ class TerminalRenderer(
 
     /**
      * Render terminal content to canvas.
+     * @param scrollOffset number of lines scrolled up from bottom (0 = at bottom)
      */
-    fun render(canvas: Canvas, cursorVisible: Boolean) {
+    fun render(canvas: Canvas, cursorVisible: Boolean, scrollOffset: Int = 0) {
         val rows = emulator.getRowCount()
         val cols = emulator.getColumnCount()
+        val sbCount = emulator.buffer.getScrollbackCount()
+        val offset = scrollOffset.coerceIn(0, sbCount)
 
         // Draw background
         bgPaint.color = colorScheme.background
         canvas.drawRect(0f, 0f, cols * fontWidth, rows * fontLineSpacing, bgPaint)
 
         for (row in 0 until rows) {
-            renderRow(canvas, row)
+            // When offset=0: row 0 = screen[0], row rows-1 = screen[rows-1]
+            // When offset=1: row 0 = scrollback[sbCount-1], row 1 = screen[0], ...
+            // When offset=N: first N rows from scrollback (newest first), rest from screen
+            val line = if (row < offset) {
+                emulator.buffer.getScrollbackLine(sbCount - offset + row)
+            } else {
+                emulator.buffer.getScreenRow(row - offset)
+            }
+            if (line != null) {
+                renderRow(canvas, row, line)
+            }
         }
 
-        // Draw cursor
-        if (cursorVisible) {
+        // Draw cursor only when not scrolled
+        if (cursorVisible && offset == 0) {
             drawCursor(canvas)
         }
     }
 
-    private fun renderRow(canvas: Canvas, row: Int) {
-        val line = emulator.buffer.getScreenRow(row)
+    private fun renderRow(canvas: Canvas, row: Int, line: TerminalRow) {
         val y = row * fontLineSpacing
 
         var col = 0
@@ -137,8 +149,8 @@ class TerminalRenderer(
     }
 
     private fun drawCursor(canvas: Canvas) {
-        val col = emulator.cursorCol
-        val row = emulator.cursorRow
+        val col = emulator.cursorCol.coerceIn(0, emulator.columns - 1)
+        val row = emulator.cursorRow.coerceIn(0, emulator.rows - 1)
         val x = col * fontWidth
         val y = row * fontLineSpacing
 

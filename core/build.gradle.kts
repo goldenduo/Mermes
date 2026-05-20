@@ -81,10 +81,41 @@ tasks.register("copyBootstrapFiles") {
     }
 }
 
+// Task to copy deb files to assets for preset installation
+tasks.register("copyDebFiles") {
+    doFirst {
+        val debDir = rootProject.file("download/mermes_deb")
+        val assetsDir = file("src/main/assets/mermes_deb")
+
+        if (debDir.exists()) {
+            debDir.listFiles()?.filter { it.isDirectory }?.forEach { archDir ->
+                val targetArchDir = File(assetsDir, archDir.name)
+                targetArchDir.mkdirs()
+                archDir.listFiles()?.filter { it.name.endsWith(".deb") }?.forEach { file ->
+                    // Replace colons with underscores for Windows compatibility
+                    val safeName = file.name.replace(":", "_")
+                    val target = File(targetArchDir, safeName)
+                    if (!target.exists() || target.lastModified() < file.lastModified()) {
+                        file.copyTo(target, overwrite = true)
+                        println("Copied ${file.name} -> $safeName")
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Ensure bootstrap files are copied before native build
 tasks.configureEach {
     if (name.startsWith("buildCMake") || name.startsWith("configureCMake")) {
         dependsOn("copyBootstrapFiles")
+    }
+}
+
+// Ensure deb files are copied before assets are merged
+tasks.configureEach {
+    if (name.startsWith("merge") && name.endsWith("Assets")) {
+        dependsOn("copyDebFiles")
     }
 }
 

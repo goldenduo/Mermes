@@ -109,17 +109,20 @@
 ### 3. 预安装 Deb 包功能
 
 **功能描述**:
-支持将预先下载好的 deb 包安装到 bootstrap 环境中，自动处理依赖关系，并支持从 SO readonly 中加载。
+支持将预先下载好的 deb 包安装到 bootstrap 环境中，自动处理依赖关系，通过 Android assets 加载离线 deb 包。
 
 **实现要求**:
-- deb 包已预先放置在 `download/mermes_deb/` 目录，按架构分类:
+- deb 包源文件在 `download/mermes_deb/` 目录，按架构分类:
   - `arm64/` (aarch64)
   - `arm32/` (arm)
   - `x64/` (x86_64)
   - `x86/` (i686)
+- 构建时通过 Gradle task `copyDebFiles` 将 deb 文件复制到 `src/main/assets/mermes_deb/{arch}/`
 - 包名已改为 `com.mermes` 兼容格式
 - 支持依赖树分析，从叶子节点开始安装
-- 支持从 `.so` 的 readonly 段加载 deb 包
+- 从 Android assets 目录加载 deb 包（无需 JNI/SO 嵌入）
+- 自动检测已安装的包，支持增量安装（跳过已安装的包）
+- 提供 `isAllPresetInstalled()` 方法判断是否所有预置包已安装
 
 **预置 deb 包列表 (以 arm64 为例)**:
 - `ca-certificates` - SSL 证书
@@ -154,15 +157,18 @@
 - 解压 `data.tar.xz` 到 `$PREFIX` 目录
 - 执行 `preinst`、`postinst` 等安装脚本
 
-#### 3.3 从 SO Readonly 加载
-- 将 deb 包通过 `.incbin` 嵌入到专用 `.so` 文件的 `.rodata` 段
-- 提供 JNI 方法按包名获取 deb 字节数组
-- 支持动态发现和加载所有预置的 deb 包
+#### 3.3 从 Assets 加载
+- 构建时 Gradle task `copyDebFiles` 将 `download/mermes_deb/{arch}/*.deb` 复制到 `src/main/assets/mermes_deb/{arch}/`
+- 运行时通过 `context.assets.list()` 发当前架构目录下的所有 deb 文件
+- 通过 `context.assets.open()` 读取 deb 文件字节数组
+- 架构映射: aarch64→arm64, arm→arm32, i686→x86, x86_64→x64
 
 #### 3.4 安装状态管理
-- 记录已安装的包和版本
+- 记录已安装的包和版本到 `$PREFIX/etc/mermes/installed_packages.txt`（格式: `name|version`）
 - 支持增量安装（跳过已安装的包）
-- 安装失败时的回滚机制
+- 提供 `isAllPresetInstalled()` 方法，判断所有预置包是否已安装
+- App 模块在启动时自动检测: 若 bootstrap 已安装且所有 preset deb 已安装，直接跳过初始化
+- 每个 deb 包安装时通过 logcat 打印进度和结果（TAG: `DebInstaller`），格式: `[当前/总数] Installed/Failed 包名 版本 (文件数)`
 
 ### 4. 伪终端 GUI 交互界面
 
@@ -204,7 +210,18 @@
 - 绘制光标和选中文本高亮
 - 处理中英文字体宽度不匹配的 Scale 修正
 
-#### 4.4 与 TerminalSession 集成
+#### 4.4 滚动条
+- 终端右侧显示自动隐藏的滚动条指示器
+- 滚动时显示，停止滚动 1.5 秒后渐隐消失
+- 滚动条高度按可见内容比例计算，位置反映当前视口在历史中的位置
+
+#### 4.5 滚动与缓存
+- TerminalBuffer 维护滚动回滚缓冲区（scrollback），默认保留 1000 行历史
+- 超出缓冲区的旧行自动丢弃（环形缓冲区淘汰）
+- 支持触摸滑动手势上下滚动查看历史输出
+- 滚动回顶部/底部时自动跟随新输出
+
+#### 4.5 与 TerminalSession 集成
 - TerminalView 绑定 TerminalSession
 - 接收输出 → TerminalEmulator 解析 → TerminalView 重绘
 - 用户输入 → 转义序列 → TerminalManager.writeToSession()

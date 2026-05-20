@@ -18,6 +18,8 @@
     <string name="shortcut_pgup">PGUP</string>
     <string name="shortcut_pgdn">PGDN</string>
     <string name="shortcut_paste">PASTE</string>
+    <string name="shortcut_enter">ENTER</string>
+    <string name="shortcut_space">SPACE</string>
 
     <string name="text_copied">Selected text copied to clipboard</string>
 </resources>

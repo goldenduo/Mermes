@@ -4,24 +4,40 @@ import android.content.Context
 import android.util.Log
 import com.mermes.core.Arch
 import com.mermes.core.MermesPaths
-import com.mermes.core.utils.FileUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * Deb package installer
+ * Deb package installer — loads preset deb files from assets
  */
 object DebInstaller {
     private const val TAG = "DebInstaller"
     private const val INSTALLED_PACKAGES_FILE = "installed_packages.txt"
+    private const val ASSETS_DEB_DIR = "mermes_deb"
+
+    /**
+     * Map Arch enum to directory name in assets
+     */
+    private fun getArchDirName(arch: Arch): String = when (arch) {
+        Arch.AARCH64 -> "arm64"
+        Arch.ARM -> "arm32"
+        Arch.I686 -> "x86"
+        Arch.X86_64 -> "x64"
+    }
+
+    /**
+     * Check if all preset packages are already installed
+     */
+    fun isAllPresetInstalled(context: Context): Boolean {
+        val presetNames = getPresetPackageNames(context)
+        if (presetNames.isEmpty()) return false
+        val installed = getInstalledPackages(context)
+        return presetNames.all { installed.containsKey(it) }
+    }
 
     /**
      * Install all preset deb packages
-     *
-     * @param context Android Context
-     * @param progressCallback Progress callback (packageName, current, total)
-     * @return List of installation results
      */
     suspend fun installPresetPackages(
         context: Context,
@@ -30,37 +46,31 @@ object DebInstaller {
         val results = mutableListOf<DebInstallResult>()
         val prefixDir = MermesPaths.getPrefixDir(context)
 
-        // Check if prefix directory exists
         if (!prefixDir.exists()) {
             Log.e(TAG, "Prefix directory does not exist, bootstrap not installed")
             return@withContext results
         }
 
-        // Get list of preset packages
         val presetPackages = getPresetPackageNames(context)
         if (presetPackages.isEmpty()) {
-            Log.i(TAG, "No preset packages found")
+            Log.i(TAG, "No preset packages found in assets")
             return@withContext results
         }
 
-        // Resolve installation order
         val packageOrder = try {
             resolvePackageOrder(context, presetPackages)
         } catch (e: CircularDependencyException) {
             Log.e(TAG, "Circular dependency detected: ${e.cycle}", e)
-            // Fall back to alphabetical order
             presetPackages.sorted()
         }
 
         val total = packageOrder.size
         var current = 0
 
-        // Install packages in order
         for (packageName in packageOrder) {
             current++
             progressCallback?.invoke(packageName, current, total)
 
-            // Skip if already installed
             if (isPackageInstalled(context, packageName)) {
                 Log.i(TAG, "Package $packageName already installed, skipping")
                 results.add(DebInstallResult(
@@ -72,77 +82,33 @@ object DebInstaller {
                 continue
             }
 
-            // Install package
             val result = installPackageByName(context, packageName)
             results.add(result)
 
-            if (!result.success) {
-                Log.e(TAG, "Failed to install package $packageName: ${result.error}")
+            if (result.success) {
+                Log.i(TAG, "[$current/$total] Installed $packageName ${result.version} (${result.installedFiles} files)")
+            } else {
+                Log.e(TAG, "[$current/$total] Failed to install $packageName: ${result.error}")
             }
         }
 
-        // Save installed packages list
         saveInstalledPackages(context, results)
-
         results
     }
 
     /**
-     * Install a single deb package
-     *
-     * @param context Android Context
-     * @param debData Deb file byte array
-     * @param packageName Package name (for logging)
-     * @return Installation result
+     * Install a single deb package from byte data
      */
     suspend fun installPackage(
         context: Context,
         debData: ByteArray,
         packageName: String
     ): DebInstallResult = withContext(Dispatchers.IO) {
-        try {
-            val prefixDir = MermesPaths.getPrefixDir(context)
-
-            // Parse deb file
-            val debPackage = DebParser.parse(debData)
-
-            // Extract data to prefix directory
-            val installedFiles = DebParser.extractData(debPackage.dataData, prefixDir)
-
-            // Execute postinst script if present
-            try {
-                DebParser.executeScripts(debPackage.controlData, prefixDir, "install")
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to execute scripts for $packageName", e)
-            }
-
-            // Mark as installed
-            markPackageInstalled(context, debPackage.control.packageName, debPackage.control.version)
-
-            DebInstallResult(
-                packageName = debPackage.control.packageName,
-                version = debPackage.control.version,
-                success = true,
-                installedFiles = installedFiles
-            )
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to install package $packageName", e)
-            DebInstallResult(
-                packageName = packageName,
-                version = "",
-                success = false,
-                installedFiles = 0,
-                error = e.message
-            )
-        }
+        installPackageSync(context, debData, packageName)
     }
 
     /**
      * Get list of installed packages
-     *
-     * @param context Android Context
-     * @return Map of package name to version
      */
     fun getInstalledPackages(context: Context): Map<String, String> {
         val result = mutableMapOf<String, String>()
@@ -162,35 +128,31 @@ object DebInstaller {
 
     /**
      * Check if package is installed
-     *
-     * @param context Android Context
-     * @param packageName Package name
-     * @return true if installed
      */
     fun isPackageInstalled(context: Context, packageName: String): Boolean {
         return getInstalledPackages(context).containsKey(packageName)
     }
 
     /**
-     * Get preset package names from native library
-     *
-     * @param context Android Context
-     * @return List of package names
+     * Get preset package names by listing deb files in assets
      */
     fun getPresetPackageNames(context: Context): List<String> {
         return try {
-            NativeDebLib.getDebNames().toList()
+            val arch = Arch.current()
+            val archDir = getArchDirName(arch)
+            val assetPath = "$ASSETS_DEB_DIR/$archDir"
+            val files = context.assets.list(assetPath) ?: emptyArray()
+            files.filter { it.endsWith(".deb") }
+                .map { it.substringBefore("_") }
+                .distinct()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get preset package names", e)
+            Log.e(TAG, "Failed to list preset packages from assets", e)
             emptyList()
         }
     }
 
     /**
      * Get preset package order (dependencies first)
-     *
-     * @param context Android Context
-     * @return Ordered list of package names
      */
     fun getPresetPackageOrder(context: Context): List<String> {
         val packageNames = getPresetPackageNames(context)
@@ -203,22 +165,20 @@ object DebInstaller {
     }
 
     /**
-     * Resolve package installation order
+     * Resolve package installation order by parsing control files from assets
      */
     private fun resolvePackageOrder(context: Context, packageNames: List<String>): List<String> {
-        val arch = Arch.current().value
         val controlList = mutableListOf<DebControl>()
 
-        // Parse control info from each package
         for (name in packageNames) {
             try {
-                val debData = NativeDebLib.getDebByArchAndName(arch, name)
+                val debData = readDebFromAssets(context, name)
                 if (debData != null) {
                     val debPackage = DebParser.parse(debData)
                     controlList.add(debPackage.control)
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to parse package $name", e)
+                Log.w(TAG, "Failed to parse package $name for dependency resolution", e)
             }
         }
 
@@ -226,19 +186,17 @@ object DebInstaller {
     }
 
     /**
-     * Install package by name from native library
+     * Install package by name from assets
      */
     private fun installPackageByName(context: Context, packageName: String): DebInstallResult {
-        val arch = Arch.current().value
-
         return try {
-            val debData = NativeDebLib.getDebByArchAndName(arch, packageName)
+            val debData = readDebFromAssets(context, packageName)
                 ?: return DebInstallResult(
                     packageName = packageName,
                     version = "",
                     success = false,
                     installedFiles = 0,
-                    error = "Package not found for architecture $arch"
+                    error = "Package not found in assets for ${Arch.current()}"
                 )
 
             installPackageSync(context, debData, packageName)
@@ -255,6 +213,21 @@ object DebInstaller {
     }
 
     /**
+     * Read deb file bytes from assets by package name
+     */
+    private fun readDebFromAssets(context: Context, packageName: String): ByteArray? {
+        val arch = Arch.current()
+        val archDir = getArchDirName(arch)
+        val assetPath = "$ASSETS_DEB_DIR/$archDir"
+
+        val files = context.assets.list(assetPath) ?: emptyArray()
+        val debFile = files.firstOrNull { it.endsWith(".deb") && it.startsWith("${packageName}_") }
+            ?: return null
+
+        return context.assets.open("$assetPath/$debFile").use { it.readBytes() }
+    }
+
+    /**
      * Synchronous package installation
      */
     private fun installPackageSync(
@@ -265,20 +238,15 @@ object DebInstaller {
         try {
             val prefixDir = MermesPaths.getPrefixDir(context)
 
-            // Parse deb file
             val debPackage = DebParser.parse(debData)
-
-            // Extract data to prefix directory
             val installedFiles = DebParser.extractData(debPackage.dataData, prefixDir)
 
-            // Execute postinst script if present
             try {
                 DebParser.executeScripts(debPackage.controlData, prefixDir, "install")
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to execute scripts for $packageName", e)
             }
 
-            // Mark as installed
             markPackageInstalled(context, debPackage.control.packageName, debPackage.control.version)
 
             return DebInstallResult(
@@ -287,7 +255,6 @@ object DebInstaller {
                 success = true,
                 installedFiles = installedFiles
             )
-
         } catch (e: Exception) {
             Log.e(TAG, "Failed to install package $packageName", e)
             return DebInstallResult(
@@ -300,9 +267,6 @@ object DebInstaller {
         }
     }
 
-    /**
-     * Mark package as installed
-     */
     private fun markPackageInstalled(context: Context, packageName: String, version: String) {
         val file = getInstalledPackagesFile(context)
         val entry = "$packageName|$version"
@@ -313,7 +277,6 @@ object DebInstaller {
             mutableListOf()
         }
 
-        // Update or add entry
         val index = existing.indexOfFirst { it.startsWith("$packageName|") }
         if (index >= 0) {
             existing[index] = entry
@@ -324,9 +287,6 @@ object DebInstaller {
         file.writeText(existing.joinToString("\n"))
     }
 
-    /**
-     * Save installed packages list
-     */
     private fun saveInstalledPackages(context: Context, results: List<DebInstallResult>) {
         val file = getInstalledPackagesFile(context)
         val successful = results.filter { it.success }
@@ -340,9 +300,6 @@ object DebInstaller {
         file.writeText(lines.joinToString("\n"))
     }
 
-    /**
-     * Get installed packages file
-     */
     private fun getInstalledPackagesFile(context: Context): File {
         val etcDir = File(MermesPaths.getPrefixDir(context), "etc")
         val mermesDir = File(etcDir, "mermes")

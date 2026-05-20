@@ -25,8 +25,8 @@ class SplashActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         statusText = findViewById(R.id.statusText)
 
-        // Skip if already installed
-        if (MermesBootstrap.isBootstrapInstalled(this)) {
+        // Skip if bootstrap installed and all preset debs installed
+        if (MermesBootstrap.isBootstrapInstalled(this) && DebInstaller.isAllPresetInstalled(this)) {
             startMain()
             return
         }
@@ -39,29 +39,31 @@ class SplashActivity : AppCompatActivity() {
     private suspend fun initializeEnvironment() {
         var bootstrapFailed = false
 
-        // Step 1: Install bootstrap
-        withContext(Dispatchers.IO) {
-            updateStatus(getString(R.string.splash_bootstrap))
-            updateProgress(0)
+        // Step 1: Install bootstrap (skip if already installed)
+        if (!MermesBootstrap.isBootstrapInstalled(this)) {
+            withContext(Dispatchers.IO) {
+                updateStatus(getString(R.string.splash_bootstrap))
+                updateProgress(0)
 
-            val result = MermesBootstrap.installBootstrap(this@SplashActivity) { progress ->
-                updateProgress((progress * 50).toInt())
-            }
+                val result = MermesBootstrap.installBootstrap(this@SplashActivity) { progress ->
+                    updateProgress((progress * 50).toInt())
+                }
 
-            if (!result.success) {
-                bootstrapFailed = true
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@SplashActivity,
-                        getString(R.string.splash_bootstrap_failed),
-                        Toast.LENGTH_LONG
-                    ).show()
+                if (!result.success) {
+                    bootstrapFailed = true
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            this@SplashActivity,
+                            getString(R.string.splash_bootstrap_failed),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         }
 
-        // Step 2: Install preset deb packages (only if bootstrap succeeded)
-        if (!bootstrapFailed) {
+        // Step 2: Install preset deb packages (skip if all already installed)
+        if (!bootstrapFailed && !DebInstaller.isAllPresetInstalled(this)) {
             withContext(Dispatchers.IO) {
                 try {
                     DebInstaller.installPresetPackages(this@SplashActivity) { name, current, total ->
@@ -69,7 +71,6 @@ class SplashActivity : AppCompatActivity() {
                         updateProgress(50 + (current * 50 / total))
                     }
                 } catch (e: Exception) {
-                    // Deb install failure is non-fatal
                     withContext(Dispatchers.Main) {
                         Toast.makeText(
                             this@SplashActivity,

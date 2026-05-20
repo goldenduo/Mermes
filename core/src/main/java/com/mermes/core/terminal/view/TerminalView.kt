@@ -38,6 +38,12 @@ class TerminalView @JvmOverloads constructor(
     private var cursorBlinkRunnable: Runnable? = null
     private val cursorBlinkRate = 500L // ms
 
+    // Scroll state
+    private var scrollOffset = 0 // lines scrolled up from bottom
+    private var isScrolling = false
+    private var scrollStartY = 0f
+    private var scrollStartOffset = 0
+
     // Modifier states for virtual keys
     var isCtrlToggled = false
         set(value) {
@@ -92,6 +98,18 @@ class TerminalView @JvmOverloads constructor(
         isAntiAlias = true
         style = Paint.Style.FILL
     }
+
+    // Scrollbar
+    private val scrollbarPaint = Paint().apply {
+        color = 0x80FFFFFF.toInt() // semi-transparent white
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    private var scrollbarAlpha = 0 // 0 = invisible, 255 = fully visible
+    private val scrollbarFadeRunnable = Runnable { fadeOutScrollbar() }
+    private val scrollbarFadeDelay = 1500L // ms before fade starts
+    private val scrollbarWidthDp = 3f
+    private val scrollbarMinHeightDp = 24f
 
     fun startSelectionMode() {
         isSelecting = true
@@ -152,6 +170,10 @@ class TerminalView @JvmOverloads constructor(
             val emu = emulator
             if (emu != null) {
                 emu.append(data)
+                // Auto-scroll to bottom when new output arrives
+                if (scrollOffset > 0) {
+                    scrollOffset = 0
+                }
                 post { invalidate() }
             }
         }
@@ -294,7 +316,7 @@ class TerminalView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val r = renderer
-        r?.render(canvas, cursorVisible)
+        r?.render(canvas, cursorVisible, scrollOffset)
         
         // Draw selection highlight on top
         if (isSelecting && termColumns > 0 && termRows > 0 && r != null) {
@@ -321,6 +343,47 @@ class TerminalView @JvmOverloads constructor(
             canvas.drawCircle(x1, y1, radius, handlePaint)
             canvas.drawCircle(x2, y2, radius, handlePaint)
         }
+
+        // Draw scrollbar
+        if (scrollbarAlpha > 0 && r != null && termRows > 0) {
+            drawScrollbar(canvas, r)
+        }
+    }
+
+    private fun drawScrollbar(canvas: Canvas, r: TerminalRenderer) {
+        val sbCount = emulator?.buffer?.getScrollbackCount() ?: 0
+        val totalLines = sbCount + termRows
+        if (totalLines <= termRows) return
+
+        val viewHeight = height.toFloat()
+        val barHeightPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, scrollbarMinHeightDp, resources.displayMetrics)
+            .coerceAtMost(viewHeight * termRows / totalLines)
+        val barWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, scrollbarWidthDp, resources.displayMetrics)
+
+        // Position: scrollOffset=0 → bottom, scrollOffset=sbCount → top
+        val scrollFraction = if (sbCount > 0) scrollOffset.toFloat() / sbCount else 0f
+        val barTop = (viewHeight - barHeightPx) * (1f - scrollFraction)
+        val barRight = width.toFloat()
+        val barLeft = barRight - barWidthPx
+
+        scrollbarPaint.alpha = scrollbarAlpha
+        canvas.drawRoundRect(barLeft, barTop, barRight, barTop + barHeightPx, barWidthPx / 2, barWidthPx / 2, scrollbarPaint)
+    }
+
+    private fun showScrollbar() {
+        scrollbarAlpha = 200
+        handler.removeCallbacks(scrollbarFadeRunnable)
+        handler.postDelayed(scrollbarFadeRunnable, scrollbarFadeDelay)
+        invalidate()
+    }
+
+    private fun fadeOutScrollbar() {
+        if (scrollbarAlpha <= 0) return
+        scrollbarAlpha = (scrollbarAlpha - 20).coerceAtLeast(0)
+        invalidate()
+        if (scrollbarAlpha > 0) {
+            handler.postDelayed(scrollbarFadeRunnable, 30) // ~30fps fade
+        }
     }
 
     override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
@@ -328,6 +391,37 @@ class TerminalView @JvmOverloads constructor(
         lastTouchX = event.x
         lastTouchY = event.y
         val r = renderer
+
+        // Handle scrolling
+        if (r != null) {
+            when (action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    scrollStartY = event.y
+                    scrollStartOffset = scrollOffset
+                    isScrolling = false
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val deltaY = event.y - scrollStartY
+                    if (!isScrolling && Math.abs(deltaY) > r.fontLineSpacing * 0.5f) {
+                        isScrolling = true
+                    }
+                    if (isScrolling) {
+                        val linesScrolled = (deltaY / r.fontLineSpacing).toInt()
+                        val maxOffset = emulator?.buffer?.getScrollbackCount() ?: 0
+                        scrollOffset = (scrollStartOffset - linesScrolled).coerceIn(0, maxOffset)
+                        showScrollbar()
+                        invalidate()
+                        return true
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    if (isScrolling) {
+                        isScrolling = false
+                        return true
+                    }
+                }
+            }
+        }
 
         if (isSelecting && r != null) {
             if (action == android.view.MotionEvent.ACTION_DOWN) {

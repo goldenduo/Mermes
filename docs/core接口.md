@@ -630,6 +630,22 @@ object DebInstaller {
     fun isPackageInstalled(context: Context, packageName: String): Boolean
 
     /**
+     * 检查所有预置包是否已全部安装
+     *
+     * @param context Android Context
+     * @return true 表示所有预置包已安装
+     */
+    fun isAllPresetInstalled(context: Context): Boolean
+
+    /**
+     * 获取预置包名称列表（从 assets 读取）
+     *
+     * @param context Android Context
+     * @return 包名列表
+     */
+    fun getPresetPackageNames(context: Context): List<String>
+
+    /**
      * 获取预置包列表（按安装顺序）
      *
      * @param context Android Context

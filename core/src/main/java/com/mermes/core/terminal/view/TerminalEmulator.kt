@@ -92,6 +92,7 @@ class TerminalEmulator(
             }
             0x0D -> { // Carriage return
                 cursorCol = 0
+                pendingWrap = false
             }
             in 0x20..0x7E, in 0x80..0xFF -> { // Printable (ASCII + extended)
                 putChar(b)
@@ -162,13 +163,14 @@ class TerminalEmulator(
         val p1 = csiParams.getOrElse(1) { 0 }
 
         when (final) {
-            'A'.code -> cursorRow = (cursorRow - maxOf(p0, 1)).coerceAtLeast(scrollTop)        // CUU
-            'B'.code -> cursorRow = (cursorRow + maxOf(p0, 1)).coerceAtMost(scrollBottom)       // CUD
-            'C'.code -> cursorCol = (cursorCol + maxOf(p0, 1)).coerceAtMost(columns - 1)       // CUF
-            'D'.code -> cursorCol = (cursorCol - maxOf(p0, 1)).coerceAtLeast(0)                 // CUB
+            'A'.code -> { cursorRow = (cursorRow - maxOf(p0, 1)).coerceAtLeast(scrollTop); pendingWrap = false }        // CUU
+            'B'.code -> { cursorRow = (cursorRow + maxOf(p0, 1)).coerceAtMost(scrollBottom); pendingWrap = false }       // CUD
+            'C'.code -> { cursorCol = (cursorCol + maxOf(p0, 1)).coerceAtMost(columns - 1); pendingWrap = false }       // CUF
+            'D'.code -> { cursorCol = (cursorCol - maxOf(p0, 1)).coerceAtLeast(0); pendingWrap = false }                 // CUB
             'H'.code, 'f'.code -> { // CUP — cursor position
                 cursorRow = (maxOf(p0, 1) - 1).coerceIn(0, rows - 1)
                 cursorCol = (maxOf(p1, 1) - 1).coerceIn(0, columns - 1)
+                pendingWrap = false
             }
             'J'.code -> eraseInDisplay(p0)  // ED
             'K'.code -> eraseInLine(p0)     // EL
@@ -234,9 +236,19 @@ class TerminalEmulator(
         }
     }
 
+    private var pendingWrap = false
+
     private fun putChar(codePoint: Int) {
         val width = WcWidth.width(codePoint)
         if (width <= 0) return
+
+        // Deferred wrap: if cursor was at the rightmost column, wrap now
+        if (pendingWrap) {
+            buffer.getScreenRow(cursorRow).isWrapped = true
+            lineFeed()
+            cursorCol = 0
+            pendingWrap = false
+        }
 
         // Wrap if needed
         if (cursorCol + width > columns) {
@@ -253,6 +265,12 @@ class TerminalEmulator(
         }
 
         cursorCol += width
+
+        // Don't advance cursor past the last column; defer the wrap
+        if (cursorCol >= columns) {
+            cursorCol = columns - 1
+            pendingWrap = true
+        }
     }
 
     private fun lineFeed() {
