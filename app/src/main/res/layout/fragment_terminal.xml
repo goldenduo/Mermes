@@ -207,6 +207,28 @@
                 android:textSize="14sp" />
 
             <Button
+                android:id="@+id/btnEnter"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_enter"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnSpace"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_space"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
                 android:id="@+id/btnKeyboard"
                 style="?android:attr/buttonStyleSmall"
                 android:layout_width="wrap_content"
