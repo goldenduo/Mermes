@@ -1,6 +1,6 @@
 package com.mermes.core.deb
 
-import android.util.Log
+import com.mermes.common.log.MermesLog as Log
 import org.apache.commons.compress.archivers.ar.ArArchiveEntry
 import org.apache.commons.compress.archivers.ar.ArArchiveInputStream
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream

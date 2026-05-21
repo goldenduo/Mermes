@@ -1,6 +1,6 @@
 package com.mermes.core.terminal.view
 
-import android.util.Log
+import com.mermes.common.log.MermesLog as Log
 
 /**
  * Terminal emulator that parses ANSI escape sequences and maintains screen state.

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.mermes.core.terminal.view.TerminalView
+        android:id="@+id/terminalView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FF000000" />
+
+    <!-- Extra Keys Row (Shortcut Bar) -->
+    <HorizontalScrollView
+        android:id="@+id/extraKeysScroll"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="#FF1E1E1E"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/extraKeysLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <Button
+                android:id="@+id/btnEsc"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_esc"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <ToggleButton
+                android:id="@+id/btnCtrl"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_ctrl"
+                android:textOff="@string/shortcut_ctrl"
+                android:textOn="@string/shortcut_ctrl"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <ToggleButton
+                android:id="@+id/btnAlt"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_alt"
+                android:textOff="@string/shortcut_alt"
+                android:textOn="@string/shortcut_alt"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnTab"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_tab"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnMinus"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="-"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnSlash"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="/"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnPipe"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="|"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnHome"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_home"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnEnd"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_end"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnPgUp"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_pgup"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnPgDn"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_pgdn"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnPaste"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_paste"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnUp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="↑"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnDown"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="↓"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnLeft"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="←"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnRight"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:text="→"
+                android:textColor="#FFFFFFFF"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnEnter"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_enter"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnSpace"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_space"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnKeyboard"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="#FF2D2D2D"
+                android:text="@string/shortcut_keyboard"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+</LinearLayout>

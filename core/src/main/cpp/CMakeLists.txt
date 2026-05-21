@@ -21,6 +21,7 @@ target_include_directories(
     mermes-bootstrap
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_ROOT_DIR}/download/mermes_bootstrap
 )
 
 # Terminal library - PTY and process management
@@ -40,6 +41,7 @@ target_link_libraries(
 add_library(
     mermes-deb
     SHARED
+    deb-zip.S
     deb-jni.c
 )
 
@@ -47,6 +49,13 @@ target_link_libraries(
     mermes-deb
     log
     android
+)
+
+target_include_directories(
+    mermes-deb
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_ROOT_DIR}/download/mermes_deb
 )
 
 # Utils library - file operations, permissions

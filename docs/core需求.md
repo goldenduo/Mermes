@@ -109,7 +109,7 @@
 ### 3. 预安装 Deb 包功能
 
 **功能描述**:
-支持将预先下载好的 deb 包安装到 bootstrap 环境中，自动处理依赖关系，通过 Android assets 加载离线 deb 包。
+支持将预先下载好的 deb 包安装到 bootstrap 环境中，自动处理依赖关系。不再通过 Android assets 复制和存放离线 deb 包，而是像 bootstrap 一样，使用一个唯一的 `.so` 库（`mermes-deb`）存放所有预先安装的 deb 包。预先安装的 deb 目录存放在 `download/mermes_deb`，`.so` 的汇编代码直接依赖并打包该文件夹内所有的 `.deb` 文件，通过 JNI 联合打包，绝不拷贝到 C++ 源文件目录。
 
 **实现要求**:
 - deb 包源文件在 `download/mermes_deb/` 目录，按架构分类:
@@ -117,12 +117,13 @@
   - `arm32/` (arm)
   - `x64/` (x86_64)
   - `x86/` (i686)
-- 构建时通过 Gradle task `copyDebFiles` 将 deb 文件复制到 `src/main/assets/mermes_deb/{arch}/`
-- 包名已改为 `com.mermes` 兼容格式
-- 支持依赖树分析，从叶子节点开始安装
-- 从 Android assets 目录加载 deb 包（无需 JNI/SO 嵌入）
-- 自动检测已安装的包，支持增量安装（跳过已安装的包）
-- 提供 `isAllPresetInstalled()` 方法判断是否所有预置包已安装
+- **直接依赖打包**：通过自定义 Gradle 任务 `packageDebs`，在构建前自动将对应架构的 deb 包压缩为 `debs-{arch}.zip`。在 C++ CMake 构建阶段，使用 ASM 汇编 `.incbin` 指令直接读取打包，绝不拷贝文件到 C++ 源文件目录。
+- **两个核心 Gradle 任务**:
+  1. `packageBootstrap`: 打包 bootstrap zip，触发 native 编译生成包含 bootstrap 文件的 `libmermes-bootstrap.so`。
+  2. `packageDebs`: 打包预安装 deb 文件的 zip 压缩包，触发 native 编译生成包含所有 deb 文件的 `libmermes-deb.so`。
+- 支持依赖树分析，从叶子节点开始安装。
+- 自动检测已安装的包，支持增量安装（跳过已安装的包）。
+- 提供 `isAllPresetInstalled()` 方法判断是否所有预置包已安装。
 
 **预置 deb 包列表 (以 arm64 为例)**:
 - `ca-certificates` - SSL 证书
@@ -146,22 +147,21 @@
 **核心流程**:
 
 #### 3.1 依赖树解析
-- 解析每个 deb 包的 `control` 文件获取依赖信息
-- 构建依赖图 (DAG)
-- 使用拓扑排序算法，从叶子节点（无依赖的包）开始安装
+- 解析每个 deb 包的 `control` 文件获取依赖信息。
+- 构建依赖图 (DAG)。
+- 使用拓扑排序算法，从叶子节点（无依赖的包）开始安装。
 
 #### 3.2 Deb 包解压安装
-- 解析 deb 文件结构 (ar 格式):
-  - `control.tar.xz`: 包含包元数据和控制脚本
-  - `data.tar.xz`: 包含实际文件
-- 解压 `data.tar.xz` 到 `$PREFIX` 目录
-- 执行 `preinst`、`postinst` 等安装脚本
+- 解析 deb 文件 structure (ar 格式):
+  - `control.tar.xz`: 包含包元数据和控制脚本。
+  - `data.tar.xz`: 包含实际文件。
+- 解压 `data.tar.xz` 到 `$PREFIX` 目录。
+- 执行 `preinst`、`postinst` 等安装脚本。
 
-#### 3.3 从 Assets 加载
-- 构建时 Gradle task `copyDebFiles` 将 `download/mermes_deb/{arch}/*.deb` 复制到 `src/main/assets/mermes_deb/{arch}/`
-- 运行时通过 `context.assets.list()` 发当前架构目录下的所有 deb 文件
-- 通过 `context.assets.open()` 读取 deb 文件字节数组
-- 架构映射: aarch64→arm64, arm→arm32, i686→x86, x86_64→x64
+#### 3.3 从 Native SO 加载
+- 运行时，通过 `NativeDebLib.getZip()` 获取包含所有 deb 包的 zip 字节数组。
+- 使用 `ZipInputStream` 在内存中遍历并提取对应包名的 `.deb` 二进制流进行解析和安装。
+- 架构映射: aarch64→arm64, arm→arm32, i686→x86, x86_64→x64。
 
 #### 3.4 安装状态管理
 - 记录已安装的包和版本到 `$PREFIX/etc/mermes/installed_packages.txt`（格式: `name|version`）

@@ -1,30 +1,21 @@
 package com.mermes.core.deb
 
 import android.content.Context
-import android.util.Log
+import com.mermes.common.log.MermesLog as Log
 import com.mermes.core.Arch
 import com.mermes.core.MermesPaths
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.ByteArrayInputStream
+import java.util.zip.ZipInputStream
 
 /**
- * Deb package installer — loads preset deb files from assets
+ * Deb package installer — loads preset deb files from native JNI SO
  */
 object DebInstaller {
     private const val TAG = "DebInstaller"
     private const val INSTALLED_PACKAGES_FILE = "installed_packages.txt"
-    private const val ASSETS_DEB_DIR = "mermes_deb"
-
-    /**
-     * Map Arch enum to directory name in assets
-     */
-    private fun getArchDirName(arch: Arch): String = when (arch) {
-        Arch.AARCH64 -> "arm64"
-        Arch.ARM -> "arm32"
-        Arch.I686 -> "x86"
-        Arch.X86_64 -> "x64"
-    }
 
     /**
      * Check if all preset packages are already installed
@@ -53,7 +44,7 @@ object DebInstaller {
 
         val presetPackages = getPresetPackageNames(context)
         if (presetPackages.isEmpty()) {
-            Log.i(TAG, "No preset packages found in assets")
+            Log.i(TAG, "No preset packages found in native SO")
             return@withContext results
         }
 
@@ -134,19 +125,23 @@ object DebInstaller {
     }
 
     /**
-     * Get preset package names by listing deb files in assets
+     * Get preset package names by listing deb files in JNI SO ZIP
      */
     fun getPresetPackageNames(context: Context): List<String> {
         return try {
-            val arch = Arch.current()
-            val archDir = getArchDirName(arch)
-            val assetPath = "$ASSETS_DEB_DIR/$archDir"
-            val files = context.assets.list(assetPath) ?: emptyArray()
-            files.filter { it.endsWith(".deb") }
-                .map { it.substringBefore("_") }
-                .distinct()
+            val zipBytes = NativeDebLib.getZip()
+            ZipInputStream(ByteArrayInputStream(zipBytes)).use { zip ->
+                val names = mutableListOf<String>()
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    if (entry.name.endsWith(".deb")) {
+                        names.add(entry.name.substringBefore("_"))
+                    }
+                }
+                names.distinct()
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to list preset packages from assets", e)
+            Log.e(TAG, "Failed to list preset packages from JNI SO", e)
             emptyList()
         }
     }
@@ -165,14 +160,14 @@ object DebInstaller {
     }
 
     /**
-     * Resolve package installation order by parsing control files from assets
+     * Resolve package installation order by parsing control files from JNI SO ZIP
      */
     private fun resolvePackageOrder(context: Context, packageNames: List<String>): List<String> {
         val controlList = mutableListOf<DebControl>()
 
         for (name in packageNames) {
             try {
-                val debData = readDebFromAssets(context, name)
+                val debData = readDebFromJni(name)
                 if (debData != null) {
                     val debPackage = DebParser.parse(debData)
                     controlList.add(debPackage.control)
@@ -186,17 +181,17 @@ object DebInstaller {
     }
 
     /**
-     * Install package by name from assets
+     * Install package by name from JNI SO ZIP
      */
     private fun installPackageByName(context: Context, packageName: String): DebInstallResult {
         return try {
-            val debData = readDebFromAssets(context, packageName)
+            val debData = readDebFromJni(packageName)
                 ?: return DebInstallResult(
                     packageName = packageName,
                     version = "",
                     success = false,
                     installedFiles = 0,
-                    error = "Package not found in assets for ${Arch.current()}"
+                    error = "Package not found in native JNI SO for ${Arch.current()}"
                 )
 
             installPackageSync(context, debData, packageName)
@@ -213,18 +208,24 @@ object DebInstaller {
     }
 
     /**
-     * Read deb file bytes from assets by package name
+     * Read deb file bytes from JNI SO ZIP by package name
      */
-    private fun readDebFromAssets(context: Context, packageName: String): ByteArray? {
-        val arch = Arch.current()
-        val archDir = getArchDirName(arch)
-        val assetPath = "$ASSETS_DEB_DIR/$archDir"
-
-        val files = context.assets.list(assetPath) ?: emptyArray()
-        val debFile = files.firstOrNull { it.endsWith(".deb") && it.startsWith("${packageName}_") }
-            ?: return null
-
-        return context.assets.open("$assetPath/$debFile").use { it.readBytes() }
+    private fun readDebFromJni(packageName: String): ByteArray? {
+        return try {
+            val zipBytes = NativeDebLib.getZip()
+            ZipInputStream(ByteArrayInputStream(zipBytes)).use { zip ->
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    if (entry.name.endsWith(".deb") && entry.name.startsWith("${packageName}_")) {
+                        return zip.readBytes()
+                    }
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read deb from native SO for $packageName", e)
+            null
+        }
     }
 
     /**

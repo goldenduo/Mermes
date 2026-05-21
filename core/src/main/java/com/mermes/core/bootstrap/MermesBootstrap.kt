@@ -1,7 +1,7 @@
 package com.mermes.core.bootstrap
 
 import android.content.Context
-import android.util.Log
+import com.mermes.common.log.MermesLog as Log
 import com.mermes.core.MermesPaths
 import com.mermes.core.utils.FileUtils
 import com.mermes.core.utils.NativeUtils

@@ -1,7 +1,7 @@
 package com.mermes.core.terminal
 
 import android.content.Context
-import android.util.Log
+import com.mermes.common.log.MermesLog as Log
 import com.mermes.core.MermesPaths
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
