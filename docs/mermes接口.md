@@ -54,6 +54,36 @@ sealed class SshConnectionState {
 }
 ```
 
+### 0.3.1 SSH 测试连接结果 (`SshTestResult.kt`)
+```kotlin
+package com.mermes.app.data.model
+
+/**
+ * SSH 测试连接失败原因枚举
+ */
+enum class SshTestFailureReason {
+    AUTH_FAILED,           // 认证失败（密码错误、密钥无效、用户名错误）
+    NETWORK_UNREACHABLE,   // 网络不可达（主机地址错误、端口未开放、防火墙拦截）
+    CONNECTION_TIMEOUT,    // 连接超时（网络延迟过高、服务器无响应）
+    KEY_PARSE_FAILED,      // 密钥解析失败（密钥格式错误、口令不匹配）
+    HOST_KEY_CHANGED,      // 主机密钥验证失败（首次连接或密钥变更）
+    PORT_FORWARD_FAILED,   // 端口转发失败
+    UNKNOWN                // 未知错误
+}
+
+/**
+ * SSH 测试连接结果
+ */
+sealed class SshTestResult {
+    data class Success(val sessionId: String) : SshTestResult()
+    data class Failure(
+        val reason: SshTestFailureReason,
+        val message: String,
+        val detail: String? = null
+    ) : SshTestResult()
+}
+```
+
 ### 0.4 SSH 配置管理接口 (`SshConfigManager.kt`)
 ```kotlin
 package com.mermes.connection
@@ -77,7 +107,7 @@ interface SshConfigManager {
     suspend fun setDefault(context: Context, id: String): Boolean
 
     // 测试 SSH 连接
-    suspend fun testConnection(config: SshConfig): SshConnectionState
+    suspend fun testConnection(config: SshConfig): SshTestResult
 }
 ```
 

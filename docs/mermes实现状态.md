@@ -87,7 +87,7 @@
 ## 数据层实现
 
 ### 数据模型 (data/model/)
-- `ConnectionModels.kt`: 连接模式、SSH 配置、连接状态
+- `ConnectionModels.kt`: 连接模式、SSH 配置、连接状态、SSH 测试结果
 - `InitModels.kt`: 初始化状态、Bootstrap 结果
 - `SessionModels.kt`: 会话、消息、Token 使用
 - `MemoryModels.kt`: 记忆条目、用户画像
@@ -156,6 +156,13 @@ Splash
 2. ✅ **SSH 连接实现**: 集成 JSch 库，支持密码和密钥认证
 3. ✅ **数据持久化**: 实现 Room 数据库存储会话和记忆
 4. ✅ **UI 细节完善**: 添加通用组件、优化主题
+5. ✅ **SSH 测试连接失败原因提示**: 实现详细的 SSH 测试连接失败原因分类与显示
+   - 新增 `SshTestFailureReason` 枚举：认证失败、网络不可达、连接超时、密钥解析失败、主机密钥验证失败、端口转发失败、未知错误
+   - 新增 `SshTestResult` 密封类：携带成功/失败状态及详细错误信息
+   - 更新 `SshCommandExecutor.testConnection()` 方法：捕获并分类 JSch 异常
+   - 更新 `ConnectionRepositoryImpl.testSshConnection()` 方法：返回 `SshTestResult` 类型
+   - 更新 `ConnectionViewModel` 和 UI 层：显示具体失败原因而非通用错误信息
+   - 添加中英文字符串资源：7 种失败原因的本地化描述
 
 ## 待完成事项
 

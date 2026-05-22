@@ -135,6 +135,15 @@
     <string name="ssh_configs_status_connected">连接成功</string>
     <string name="ssh_configs_status_failed">测试失败</string>
 
+    <!-- SSH 测试连接失败原因 -->
+    <string name="ssh_failure_auth_failed">认证失败（密码错误、密钥无效或用户名错误）</string>
+    <string name="ssh_failure_network_unreachable">网络不可达（主机地址错误、端口未开放或防火墙拦截）</string>
+    <string name="ssh_failure_connection_timeout">连接超时（网络延迟过高或服务器无响应）</string>
+    <string name="ssh_failure_key_parse_failed">密钥解析失败（密钥格式错误或口令不匹配）</string>
+    <string name="ssh_failure_host_key_changed">主机密钥验证失败（首次连接或密钥已变更）</string>
+    <string name="ssh_failure_port_forward_failed">端口转发失败（本地端口可能被占用）</string>
+    <string name="ssh_failure_unknown">未知错误</string>
+
     <!-- SSH 配置编辑表单 -->
     <string name="ssh_edit_title_new">新建 SSH 配置</string>
     <string name="ssh_edit_title_edit">编辑 SSH 配置</string>

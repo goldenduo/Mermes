@@ -33,6 +33,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mermes.app.R
 import com.mermes.app.data.model.SshConfig
 import com.mermes.app.data.model.SshConnectionState
+import com.mermes.app.data.model.SshTestFailureReason
+import com.mermes.app.data.model.SshTestResult
 import com.mermes.common.i18n.MermesI18nTranslator
 import java.util.Locale
 
@@ -83,19 +85,22 @@ fun WelcomeScreen(
     LaunchedEffect(uiState.testResult) {
         uiState.testResult?.let { result ->
             when (result) {
-                is SshConnectionState.Connected -> {
+                is SshTestResult.Success -> {
                     Toast.makeText(
                         context,
                         context.getString(R.string.ssh_configs_test_success),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-                is SshConnectionState.Error -> {
-                    val friendlyErr = translator.translate(result.message, locale)
-                    val formatStr = context.getString(R.string.ssh_configs_test_failed, friendlyErr)
-                    Toast.makeText(context, formatStr, Toast.LENGTH_LONG).show()
+                is SshTestResult.Failure -> {
+                    val reasonText = getFailureReasonText(context, result.reason)
+                    val detailMsg = if (result.detail != null) {
+                        "$reasonText\n${result.detail}"
+                    } else {
+                        reasonText
+                    }
+                    Toast.makeText(context, detailMsg, Toast.LENGTH_LONG).show()
                 }
-                else -> {}
             }
             viewModel.clearTestResult()
         }
@@ -453,5 +458,17 @@ private fun ConnectionModeCard(
                 )
             }
         }
+    }
+}
+
+private fun getFailureReasonText(context: android.content.Context, reason: SshTestFailureReason): String {
+    return when (reason) {
+        SshTestFailureReason.AUTH_FAILED -> context.getString(R.string.ssh_failure_auth_failed)
+        SshTestFailureReason.NETWORK_UNREACHABLE -> context.getString(R.string.ssh_failure_network_unreachable)
+        SshTestFailureReason.CONNECTION_TIMEOUT -> context.getString(R.string.ssh_failure_connection_timeout)
+        SshTestFailureReason.KEY_PARSE_FAILED -> context.getString(R.string.ssh_failure_key_parse_failed)
+        SshTestFailureReason.HOST_KEY_CHANGED -> context.getString(R.string.ssh_failure_host_key_changed)
+        SshTestFailureReason.PORT_FORWARD_FAILED -> context.getString(R.string.ssh_failure_port_forward_failed)
+        SshTestFailureReason.UNKNOWN -> context.getString(R.string.ssh_failure_unknown)
     }
 }

@@ -38,6 +38,8 @@ import com.mermes.app.R
 import com.mermes.app.data.model.AuthType
 import com.mermes.app.data.model.SshConfig
 import com.mermes.app.data.model.SshConnectionState
+import com.mermes.app.data.model.SshTestFailureReason
+import com.mermes.app.data.model.SshTestResult
 import com.mermes.app.data.repository.impl.ConnectionRepositoryImpl
 import com.mermes.common.log.MermesLog
 import androidx.compose.ui.platform.LocalConfiguration
@@ -60,12 +62,12 @@ class SshConfigsViewModel(application: Application) : AndroidViewModel(applicati
     val uiState: StateFlow<SshConfigsUiState> = _uiState.asStateFlow()
 
     // 追踪每个 Config 专属的测通状态
-    private val _testStates = MutableStateFlow<Map<String, SshConnectionState>>(emptyMap())
-    val testStates: StateFlow<Map<String, SshConnectionState>> = _testStates.asStateFlow()
+    private val _testStates = MutableStateFlow<Map<String, SshTestResult?>>(emptyMap())
+    val testStates: StateFlow<Map<String, SshTestResult?>> = _testStates.asStateFlow()
 
     // 测试连接结果事件流
-    private val _testEvents = MutableSharedFlow<Pair<String, SshConnectionState>>(replay = 0)
-    val testEvents: SharedFlow<Pair<String, SshConnectionState>> = _testEvents.asSharedFlow()
+    private val _testEvents = MutableSharedFlow<Pair<String, SshTestResult>>(replay = 0)
+    val testEvents: SharedFlow<Pair<String, SshTestResult>> = _testEvents.asSharedFlow()
 
     fun loadConfigs() {
         viewModelScope.launch {
@@ -93,7 +95,8 @@ class SshConfigsViewModel(application: Application) : AndroidViewModel(applicati
 
     fun testConnection(config: SshConfig) {
         viewModelScope.launch {
-            _testStates.value = _testStates.value + (config.id to SshConnectionState.Connecting)
+            // 使用 null 表示正在测试中
+            _testStates.value = _testStates.value + (config.id to null)
             val result = repository.testSshConnection(config)
             _testStates.value = _testStates.value + (config.id to result)
             _testEvents.emit(config.id to result)
@@ -132,21 +135,24 @@ fun SshConfigsScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.testEvents.collect { (_, state) ->
-            when (state) {
-                is SshConnectionState.Connected -> {
+        viewModel.testEvents.collect { (_, result) ->
+            when (result) {
+                is SshTestResult.Success -> {
                     Toast.makeText(
                         context,
                         context.getString(R.string.ssh_configs_test_success),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-                is SshConnectionState.Error -> {
-                    val friendlyErr = translator.translate(state.message, locale)
-                    val formatStr = context.getString(R.string.ssh_configs_test_failed, friendlyErr)
-                    Toast.makeText(context, formatStr, Toast.LENGTH_LONG).show()
+                is SshTestResult.Failure -> {
+                    val reasonText = getFailureReasonText(context, result.reason)
+                    val detailMsg = if (result.detail != null) {
+                        "$reasonText\n${result.detail}"
+                    } else {
+                        reasonText
+                    }
+                    Toast.makeText(context, detailMsg, Toast.LENGTH_LONG).show()
                 }
-                else -> {}
             }
         }
     }
@@ -224,7 +230,7 @@ fun SshConfigsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(configs, key = { it.id }) { config ->
-                        val testState = testStates[config.id] ?: SshConnectionState.Disconnected
+                        val testState = testStates[config.id]
 
                         SshConfigCard(
                             config = config,
@@ -290,7 +296,7 @@ fun SshConfigsScreen(
 @Composable
 private fun SshConfigCard(
     config: SshConfig,
-    testState: SshConnectionState,
+    testState: SshTestResult?,
     onCardClick: () -> Unit,
     onTestConnect: () -> Unit,
     onSetDefault: () -> Unit,
@@ -461,16 +467,21 @@ private fun SshConfigCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable(onClick = {
-                        if (testState is SshConnectionState.Error) {
-                            val friendlyErr = cardTranslator.translate(testState.message, cardLocale)
-                            val formatStr = cardContext.getString(R.string.ssh_configs_test_failed, friendlyErr)
-                            Toast.makeText(cardContext, formatStr, Toast.LENGTH_LONG).show()
+                        if (testState is SshTestResult.Failure) {
+                            val reasonText = getFailureReasonText(cardContext, testState.reason)
+                            val detailMsg = if (testState.detail != null) {
+                                "$reasonText\n${testState.detail}"
+                            } else {
+                                reasonText
+                            }
+                            Toast.makeText(cardContext, detailMsg, Toast.LENGTH_LONG).show()
                         }
                         onTestConnect()
                     })
                 ) {
                     when (testState) {
-                        is SshConnectionState.Connecting -> {
+                        null -> {
+                            // 正在测试中 (null 表示测试进行中)
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
@@ -484,7 +495,7 @@ private fun SshConfigCard(
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                        is SshConnectionState.Connected -> {
+                        is SshTestResult.Success -> {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
@@ -499,7 +510,7 @@ private fun SshConfigCard(
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                        is SshConnectionState.Error -> {
+                        is SshTestResult.Failure -> {
                             Icon(
                                 imageVector = Icons.Default.Error,
                                 contentDescription = null,
@@ -514,21 +525,6 @@ private fun SshConfigCard(
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        else -> {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(id = R.string.ssh_configs_test_connect),
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -555,5 +551,17 @@ private fun SshConfigCard(
                 }
             }
         }
+    }
+}
+
+private fun getFailureReasonText(context: android.content.Context, reason: SshTestFailureReason): String {
+    return when (reason) {
+        SshTestFailureReason.AUTH_FAILED -> context.getString(R.string.ssh_failure_auth_failed)
+        SshTestFailureReason.NETWORK_UNREACHABLE -> context.getString(R.string.ssh_failure_network_unreachable)
+        SshTestFailureReason.CONNECTION_TIMEOUT -> context.getString(R.string.ssh_failure_connection_timeout)
+        SshTestFailureReason.KEY_PARSE_FAILED -> context.getString(R.string.ssh_failure_key_parse_failed)
+        SshTestFailureReason.HOST_KEY_CHANGED -> context.getString(R.string.ssh_failure_host_key_changed)
+        SshTestFailureReason.PORT_FORWARD_FAILED -> context.getString(R.string.ssh_failure_port_forward_failed)
+        SshTestFailureReason.UNKNOWN -> context.getString(R.string.ssh_failure_unknown)
     }
 }

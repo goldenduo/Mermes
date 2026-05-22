@@ -3,7 +3,10 @@ package com.mermes.app.data.remote
 import com.google.gson.Gson
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.JSch
+import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
+import com.mermes.app.data.model.SshTestFailureReason
+import com.mermes.app.data.model.SshTestResult
 import com.mermes.common.log.MermesLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,6 +14,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.Properties
 
 /**
@@ -138,11 +145,11 @@ class SshCommandExecutor(
 
         val jsch = JSch()
 
-        // 配置密钥认证
-        if (privateKeyPath != null) {
+        // 配置密钥认证（只在路径非空且文件存在时添加）
+        if (!privateKeyPath.isNullOrBlank()) {
             val keyFile = File(privateKeyPath)
             if (keyFile.exists()) {
-                if (passphrase != null) {
+                if (!passphrase.isNullOrBlank()) {
                     jsch.addIdentity(keyFile.absolutePath, passphrase)
                 } else {
                     jsch.addIdentity(keyFile.absolutePath)
@@ -152,8 +159,8 @@ class SshCommandExecutor(
 
         val newSession = jsch.getSession(username, host, port)
 
-        // 配置密码认证
-        if (password != null && privateKeyPath == null) {
+        // 配置密码认证（只要密码不为空就设置，JSch 会自动尝试多种认证方式）
+        if (!password.isNullOrBlank()) {
             newSession.setPassword(password)
         }
 
@@ -279,6 +286,175 @@ class SshCommandExecutor(
 
     override suspend fun executePythonScript(script: String): String? {
         return executeWithStdin("python3 -", script)
+    }
+
+    /**
+     * 测试 SSH 连接并返回详细结果，用于 UI 展示具体失败原因
+     */
+    suspend fun testConnection(): SshTestResult {
+        return withContext(Dispatchers.IO) {
+            try {
+                val session = getSession()
+                val channel = session.openChannel("exec") as ChannelExec
+                channel.setCommand("echo 'test'")
+                channel.inputStream = null
+
+                val outputStream = ByteArrayOutputStream()
+                channel.outputStream = outputStream
+
+                channel.connect(10000)
+
+                while (!channel.isClosed) {
+                    Thread.sleep(100)
+                }
+
+                val exitCode = channel.exitStatus
+                channel.disconnect()
+
+                if (exitCode == 0) {
+                    SshTestResult.Success(session.toString())
+                } else {
+                    SshTestResult.Failure(
+                        reason = SshTestFailureReason.UNKNOWN,
+                        message = "Command execution failed with exit code $exitCode"
+                    )
+                }
+            } catch (e: Exception) {
+                val result = classifySshError(e)
+                MermesLog.e("SshCommandExecutor", "Test connection failed: ${result.reason}", e)
+                session?.disconnect()
+                session = null
+                result
+            }
+        }
+    }
+
+    private fun classifySshError(e: Exception): SshTestResult.Failure {
+        return when {
+            // 认证失败
+            e is JSchException && e.message?.contains("Auth fail") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.AUTH_FAILED,
+                    message = "认证失败",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("USERAUTH fail") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.AUTH_FAILED,
+                    message = "认证失败",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("Auth cancel") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.AUTH_FAILED,
+                    message = "认证被取消",
+                    detail = e.message
+                )
+
+            // 密钥解析失败
+            e is JSchException && e.message?.contains("invalid privatekey") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.KEY_PARSE_FAILED,
+                    message = "私钥格式无效",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("passphrase") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.KEY_PARSE_FAILED,
+                    message = "私钥口令错误",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("identity") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.KEY_PARSE_FAILED,
+                    message = "密钥加载失败",
+                    detail = e.message
+                )
+
+            // 主机密钥验证失败
+            e is JSchException && e.message?.contains("HostKey") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.HOST_KEY_CHANGED,
+                    message = "主机密钥验证失败",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("verify") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.HOST_KEY_CHANGED,
+                    message = "主机密钥验证失败",
+                    detail = e.message
+                )
+
+            // 端口转发失败
+            e is JSchException && e.message?.contains("PortForwardingL") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.PORT_FORWARD_FAILED,
+                    message = "本地端口转发失败",
+                    detail = e.message
+                )
+            e.message?.contains("forwarding failed") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.PORT_FORWARD_FAILED,
+                    message = "端口转发失败",
+                    detail = e.message
+                )
+
+            // 网络不可达
+            e is UnknownHostException ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.NETWORK_UNREACHABLE,
+                    message = "主机地址无法解析",
+                    detail = e.message
+                )
+            e is ConnectException ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.NETWORK_UNREACHABLE,
+                    message = "连接被拒绝，端口可能未开放",
+                    detail = e.message
+                )
+            e is NoRouteToHostException ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.NETWORK_UNREACHABLE,
+                    message = "网络不可达",
+                    detail = e.message
+                )
+
+            // 连接超时
+            e is SocketTimeoutException ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.CONNECTION_TIMEOUT,
+                    message = "连接超时",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("timeout") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.CONNECTION_TIMEOUT,
+                    message = "连接超时",
+                    detail = e.message
+                )
+            e is JSchException && e.message?.contains("Timeout") == true ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.CONNECTION_TIMEOUT,
+                    message = "连接超时",
+                    detail = e.message
+                )
+
+            // JSch 通用异常，尝试从 message 提取更多信息
+            e is JSchException ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.UNKNOWN,
+                    message = "SSH 连接异常",
+                    detail = e.message
+                )
+
+            // 其他未知异常
+            else ->
+                SshTestResult.Failure(
+                    reason = SshTestFailureReason.UNKNOWN,
+                    message = "连接失败",
+                    detail = e.message ?: e.toString()
+                )
+        }
     }
 
     override fun close() {

@@ -8,6 +8,7 @@ import com.mermes.app.data.model.ConnectionMode
 import com.mermes.app.data.model.HttpConfig
 import com.mermes.app.data.model.SshConfig
 import com.mermes.app.data.model.SshConnectionState
+import com.mermes.app.data.model.SshTestResult
 import com.mermes.app.data.repository.impl.ConnectionRepositoryImpl
 import com.mermes.common.log.MermesLog
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -120,5 +121,5 @@ data class ConnectionUiState(
     val connectionState: SshConnectionState = SshConnectionState.Disconnected,
     val isConnecting: Boolean = false,
     val isTestingConnection: Boolean = false,
-    val testResult: SshConnectionState? = null
+    val testResult: SshTestResult? = null
 )

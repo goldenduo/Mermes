@@ -135,6 +135,15 @@
     <string name="ssh_configs_status_connected">Connected</string>
     <string name="ssh_configs_status_failed">Failed</string>
 
+    <!-- SSH Test Failure Reasons -->
+    <string name="ssh_failure_auth_failed">Authentication failed (wrong password, invalid key, or incorrect username)</string>
+    <string name="ssh_failure_network_unreachable">Network unreachable (wrong host, port not open, or firewall blocked)</string>
+    <string name="ssh_failure_connection_timeout">Connection timed out (high network latency or server not responding)</string>
+    <string name="ssh_failure_key_parse_failed">Key parse failed (invalid key format or wrong passphrase)</string>
+    <string name="ssh_failure_host_key_changed">Host key verification failed (first connection or key changed)</string>
+    <string name="ssh_failure_port_forward_failed">Port forwarding failed (local port may be in use)</string>
+    <string name="ssh_failure_unknown">Unknown error</string>
+
     <!-- SSH Config Edit -->
     <string name="ssh_edit_title_new">New SSH Configuration</string>
     <string name="ssh_edit_title_edit">Edit SSH Configuration</string>

@@ -6,6 +6,7 @@ import com.mermes.app.data.model.ConnectionMode
 import com.mermes.app.data.model.HttpConfig
 import com.mermes.app.data.model.SshConfig
 import com.mermes.app.data.model.SshConnectionState
+import com.mermes.app.data.model.SshTestResult
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -30,7 +31,7 @@ interface ConnectionRepository {
     suspend fun connectHttp(config: HttpConfig)
     suspend fun connectSsh(config: SshConfig)
     suspend fun disconnect()
-    suspend fun testSshConnection(config: SshConfig): SshConnectionState
+    suspend fun testSshConnection(config: SshConfig): SshTestResult
 
     // 获取当前连接配置
     suspend fun getCurrentConfig(): ConnectionConfig?

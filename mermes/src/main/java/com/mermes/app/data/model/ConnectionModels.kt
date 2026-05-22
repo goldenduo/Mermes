@@ -66,3 +66,28 @@ data class ConnectionConfig(
     val sshConfig: SshConfig? = null,
     val httpConfig: HttpConfig? = null
 )
+
+/**
+ * SSH 测试连接失败原因枚举
+ */
+enum class SshTestFailureReason {
+    AUTH_FAILED,           // 认证失败（密码错误、密钥无效、用户名错误）
+    NETWORK_UNREACHABLE,   // 网络不可达（主机地址错误、端口未开放、防火墙拦截）
+    CONNECTION_TIMEOUT,    // 连接超时（网络延迟过高、服务器无响应）
+    KEY_PARSE_FAILED,      // 密钥解析失败（密钥格式错误、口令不匹配）
+    HOST_KEY_CHANGED,      // 主机密钥验证失败（首次连接或密钥变更）
+    PORT_FORWARD_FAILED,   // 端口转发失败
+    UNKNOWN                // 未知错误
+}
+
+/**
+ * SSH 测试连接结果
+ */
+sealed class SshTestResult {
+    data class Success(val sessionId: String) : SshTestResult()
+    data class Failure(
+        val reason: SshTestFailureReason,
+        val message: String,
+        val detail: String? = null
+    ) : SshTestResult()
+}

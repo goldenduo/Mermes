@@ -14,6 +14,7 @@ import com.mermes.app.data.model.ConnectionMode
 import com.mermes.app.data.model.HttpConfig
 import com.mermes.app.data.model.SshConfig
 import com.mermes.app.data.model.SshConnectionState
+import com.mermes.app.data.model.SshTestResult
 import com.mermes.app.data.remote.LocalCommandExecutor
 import com.mermes.app.data.remote.SshCommandExecutor
 import com.mermes.app.data.remote.HttpCommandExecutor
@@ -210,7 +211,7 @@ class ConnectionRepositoryImpl(
         MermesLog.i("ConnectionRepo", "Disconnected")
     }
 
-    override suspend fun testSshConnection(config: SshConfig): SshConnectionState {
+    override suspend fun testSshConnection(config: SshConfig): SshTestResult {
         return try {
             val executor = SshCommandExecutor(
                 host = config.host,
@@ -225,16 +226,15 @@ class ConnectionRepositoryImpl(
                 tunnelRemotePort = config.tunnelRemotePort
             )
 
-            val result = executor.execute("echo 'test'")
+            val result = executor.testConnection()
             executor.close()
-
-            if (result != null) {
-                SshConnectionState.Connected(config.id)
-            } else {
-                SshConnectionState.Error("Connection test failed")
-            }
+            result
         } catch (e: Exception) {
-            SshConnectionState.Error("Connection test failed: ${e.message}", e)
+            SshTestResult.Failure(
+                reason = com.mermes.app.data.model.SshTestFailureReason.UNKNOWN,
+                message = "测试连接异常",
+                detail = e.message
+            )
         }
     }
 
