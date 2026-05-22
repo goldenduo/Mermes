@@ -98,15 +98,6 @@
     <string name="tools_system">系统工具</string>
     <string name="tools_mcp">MCP 服务器</string>
 
-    <!-- 设置 -->
-    <string name="settings_title">全局设置</string>
-    <string name="settings_language">语言</string>
-    <string name="settings_language_zh">中文</string>
-    <string name="settings_language_en">English</string>
-    <string name="settings_ssh_configs">SSH 配置</string>
-    <string name="settings_providers">提供商</string>
-    <string name="settings_models">模型库</string>
-    <string name="settings_log_toggle">日志脱敏</string>
 
     <!-- 办公 -->
     <string name="office_title">办公协同</string>
@@ -141,12 +132,14 @@
     <string name="ssh_configs_delete_confirm">确定要删除 SSH 配置 \"%1$s\" 吗？</string>
     <string name="ssh_configs_delete_success">SSH 配置已删除</string>
     <string name="ssh_configs_test_connecting">正在测试连接…</string>
+    <string name="ssh_configs_status_connected">连接成功</string>
+    <string name="ssh_configs_status_failed">测试失败</string>
 
     <!-- SSH 配置编辑表单 -->
     <string name="ssh_edit_title_new">新建 SSH 配置</string>
     <string name="ssh_edit_title_edit">编辑 SSH 配置</string>
     <string name="ssh_edit_name">配置名称</string>
-    <string name="ssh_edit_name_hint">输入自定义配置名称，如：远程大模型</string>
+    <string name="ssh_edit_name_hint">输入自定义配置名称，如：远程 Hermes Agent</string>
     <string name="ssh_edit_host">主机地址</string>
     <string name="ssh_edit_host_hint">如 192.168.1.100 或 remote-server.com</string>
     <string name="ssh_edit_port">SSH 端口</string>
@@ -178,4 +171,21 @@
     <string name="ssh_tunnel_remote_host">远程转发目标主机</string>
     <string name="ssh_tunnel_remote_port">远程转发目标端口</string>
     <string name="ssh_tunnel_desc">启用后，当建立 SSH 连接时，系统会自动开启一条本地端口转发隧道。例如，将本地的 11434 端口加密映射到远程服务器的 127.0.0.1:11434。这使本地的大模型对话等服务可以直接且安全地与远程大模型（如 Ollama、Claw3D）进行对接。</string>
+
+    <!-- 全局设置 -->
+    <string name="settings_title">全局设置</string>
+    <string name="settings_general">通用</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_connection">连接</string>
+    <string name="settings_ssh_config">SSH 配置</string>
+    <string name="settings_ssh_config_desc">管理 SSH 连接配置</string>
+    <string name="settings_providers">提供商</string>
+    <string name="settings_providers_desc">配置大模型提供商</string>
+    <string name="settings_models">模型库</string>
+    <string name="settings_models_desc">管理可用模型</string>
+    <string name="settings_security">安全</string>
+    <string name="settings_log_sanitize">日志脱敏</string>
+    <string name="settings_log_sanitize_desc">自动隐藏敏感信息</string>
+    <string name="settings_disconnect">断开连接</string>
+    <string name="settings_disconnect_desc">断开连接并返回选择页面</string>
 </resources>

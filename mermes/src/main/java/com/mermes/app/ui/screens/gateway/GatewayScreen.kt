@@ -47,10 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mermes.app.data.model.GatewayPlatform
 
+import androidx.compose.material.icons.filled.Settings
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GatewayScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     var platforms by remember { mutableStateOf(getMockPlatforms()) }
 
@@ -69,6 +72,14 @@ fun GatewayScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "全局设置"
                         )
                     }
                 }

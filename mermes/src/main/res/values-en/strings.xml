@@ -98,15 +98,6 @@
     <string name="tools_system">System Tools</string>
     <string name="tools_mcp">MCP Servers</string>
 
-    <!-- Settings -->
-    <string name="settings_title">Global Settings</string>
-    <string name="settings_language">Language</string>
-    <string name="settings_language_zh">中文</string>
-    <string name="settings_language_en">English</string>
-    <string name="settings_ssh_configs">SSH Configs</string>
-    <string name="settings_providers">Providers</string>
-    <string name="settings_models">Models</string>
-    <string name="settings_log_toggle">Log Sanitization</string>
 
     <!-- Office -->
     <string name="office_title">Office (Claw3D)</string>
@@ -141,12 +132,14 @@
     <string name="ssh_configs_delete_confirm">Are you sure you want to delete SSH configuration \"%1$s\"?</string>
     <string name="ssh_configs_delete_success">SSH configuration deleted</string>
     <string name="ssh_configs_test_connecting">Testing connection…</string>
+    <string name="ssh_configs_status_connected">Connected</string>
+    <string name="ssh_configs_status_failed">Failed</string>
 
     <!-- SSH Config Edit -->
     <string name="ssh_edit_title_new">New SSH Configuration</string>
     <string name="ssh_edit_title_edit">Edit SSH Configuration</string>
     <string name="ssh_edit_name">Config Name</string>
-    <string name="ssh_edit_name_hint">Enter a custom name, e.g. Remote LLM</string>
+    <string name="ssh_edit_name_hint">Enter a custom name, e.g. Remote Hermes Agent</string>
     <string name="ssh_edit_host">Host Address</string>
     <string name="ssh_edit_host_hint">e.g. 192.168.1.100 or remote-server.com</string>
     <string name="ssh_edit_port">SSH Port</string>
@@ -178,4 +171,21 @@
     <string name="ssh_tunnel_remote_host">Remote Forward Host</string>
     <string name="ssh_tunnel_remote_port">Remote Forward Port</string>
     <string name="ssh_tunnel_desc">When enabled, an encrypted local port forwarding tunnel is automatically opened along with the SSH connection. For example, it maps local port 11434 to remote server\'s 127.0.0.1:11434. This allows local AI services or chat clients to securely communicate with remote LLM engines (such as Ollama or Claw3D).</string>
+
+    <!-- Global Settings -->
+    <string name="settings_title">Global Settings</string>
+    <string name="settings_general">General</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_connection">Connection</string>
+    <string name="settings_ssh_config">SSH Configurations</string>
+    <string name="settings_ssh_config_desc">Manage SSH connection configs</string>
+    <string name="settings_providers">Providers</string>
+    <string name="settings_providers_desc">Configure LLM providers</string>
+    <string name="settings_models">Models</string>
+    <string name="settings_models_desc">Manage available models</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_log_sanitize">Sanitize Logs</string>
+    <string name="settings_log_sanitize_desc">Automatically hide sensitive information</string>
+    <string name="settings_disconnect">Disconnect</string>
+    <string name="settings_disconnect_desc">Disconnect and return to selection</string>
 </resources>

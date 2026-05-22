@@ -99,7 +99,8 @@ fun MainScreen(
 
             composable(Screen.Gateway.route) {
                 GatewayScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
         }

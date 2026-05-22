@@ -19,6 +19,10 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.ModelTraining
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +45,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mermes.app.R
+import com.mermes.app.ui.screens.splash.ConnectionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +56,9 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToSshConfigs: () -> Unit,
     onNavigateToProviders: () -> Unit,
-    onNavigateToModels: () -> Unit
+    onNavigateToModels: () -> Unit,
+    onDisconnect: () -> Unit,
+    viewModel: ConnectionViewModel = viewModel()
 ) {
     var isZhLanguage by remember { mutableStateOf(true) }
     var isLogSanitized by remember { mutableStateOf(true) }
@@ -58,7 +68,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "全局设置",
+                        text = stringResource(id = R.string.settings_title),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -67,7 +77,7 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(id = R.string.back)
                         )
                     }
                 }
@@ -81,10 +91,10 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // 语言设置
-            SettingsSection(title = "通用") {
+            SettingsSection(title = stringResource(id = R.string.settings_general)) {
                 SettingsItem(
                     icon = Icons.Default.Language,
-                    title = "语言",
+                    title = stringResource(id = R.string.settings_language),
                     subtitle = if (isZhLanguage) "中文" else "English",
                     onClick = { isZhLanguage = !isZhLanguage }
                 )
@@ -93,25 +103,25 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 连接设置
-            SettingsSection(title = "连接") {
+            SettingsSection(title = stringResource(id = R.string.settings_connection)) {
                 SettingsItem(
                     icon = Icons.Default.Settings,
-                    title = "SSH 配置",
-                    subtitle = "管理 SSH 连接配置",
+                    title = stringResource(id = R.string.settings_ssh_config),
+                    subtitle = stringResource(id = R.string.settings_ssh_config_desc),
                     onClick = onNavigateToSshConfigs
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsItem(
                     icon = Icons.Default.Cloud,
-                    title = "提供商",
-                    subtitle = "配置大模型提供商",
+                    title = stringResource(id = R.string.settings_providers),
+                    subtitle = stringResource(id = R.string.settings_providers_desc),
                     onClick = onNavigateToProviders
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsItem(
                     icon = Icons.Default.ModelTraining,
-                    title = "模型库",
-                    subtitle = "管理可用模型",
+                    title = stringResource(id = R.string.settings_models),
+                    subtitle = stringResource(id = R.string.settings_models_desc),
                     onClick = onNavigateToModels
                 )
             }
@@ -119,15 +129,51 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 安全设置
-            SettingsSection(title = "安全") {
+            SettingsSection(title = stringResource(id = R.string.settings_security)) {
                 SettingsToggleItem(
                     icon = Icons.Default.Security,
-                    title = "日志脱敏",
-                    subtitle = "自动隐藏敏感信息",
+                    title = stringResource(id = R.string.settings_log_sanitize),
+                    subtitle = stringResource(id = R.string.settings_log_sanitize_desc),
                     isChecked = isLogSanitized,
                     onToggle = { isLogSanitized = it }
                 )
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 断开连接大按钮
+            Button(
+                onClick = {
+                    viewModel.disconnect()
+                    onDisconnect()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                shape = RoundedCornerShape(14.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 2.dp,
+                    pressedElevation = 6.dp
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = stringResource(id = R.string.settings_disconnect)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(id = R.string.settings_disconnect_desc),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

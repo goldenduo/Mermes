@@ -108,6 +108,12 @@ class ConnectionViewModel(application: Application) : AndroidViewModel(applicati
     fun clearTestResult() {
         _uiState.value = _uiState.value.copy(testResult = null)
     }
+
+    fun disconnect() {
+        viewModelScope.launch {
+            repository.disconnect()
+        }
+    }
 }
 
 data class ConnectionUiState(

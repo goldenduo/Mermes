@@ -40,9 +40,14 @@ import com.mermes.app.data.model.SshConfig
 import com.mermes.app.data.model.SshConnectionState
 import com.mermes.app.data.repository.impl.ConnectionRepositoryImpl
 import com.mermes.common.log.MermesLog
+import androidx.compose.ui.platform.LocalConfiguration
+import com.mermes.common.i18n.MermesI18nTranslator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class SshConfigsViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,6 +62,10 @@ class SshConfigsViewModel(application: Application) : AndroidViewModel(applicati
     // 追踪每个 Config 专属的测通状态
     private val _testStates = MutableStateFlow<Map<String, SshConnectionState>>(emptyMap())
     val testStates: StateFlow<Map<String, SshConnectionState>> = _testStates.asStateFlow()
+
+    // 测试连接结果事件流
+    private val _testEvents = MutableSharedFlow<Pair<String, SshConnectionState>>(replay = 0)
+    val testEvents: SharedFlow<Pair<String, SshConnectionState>> = _testEvents.asSharedFlow()
 
     fun loadConfigs() {
         viewModelScope.launch {
@@ -87,6 +96,7 @@ class SshConfigsViewModel(application: Application) : AndroidViewModel(applicati
             _testStates.value = _testStates.value + (config.id to SshConnectionState.Connecting)
             val result = repository.testSshConnection(config)
             _testStates.value = _testStates.value + (config.id to result)
+            _testEvents.emit(config.id to result)
         }
     }
 
@@ -112,10 +122,33 @@ fun SshConfigsScreen(
     val configs by viewModel.configs.collectAsState()
     val testStates by viewModel.testStates.collectAsState()
 
+    val translator = remember { MermesI18nTranslator() }
+    val locale = LocalConfiguration.current.locales[0]
+
     var showDeleteConfirmDialog by remember { mutableStateOf<SshConfig?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadConfigs()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.testEvents.collect { (_, state) ->
+            when (state) {
+                is SshConnectionState.Connected -> {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.ssh_configs_test_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                is SshConnectionState.Error -> {
+                    val friendlyErr = translator.translate(state.message, locale)
+                    val formatStr = context.getString(R.string.ssh_configs_test_failed, friendlyErr)
+                    Toast.makeText(context, formatStr, Toast.LENGTH_LONG).show()
+                }
+                else -> {}
+            }
+        }
     }
 
     Scaffold(
@@ -421,9 +454,20 @@ private fun SshConfigCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // Test Connection Action Row
+                val cardContext = LocalContext.current
+                val cardLocale = LocalConfiguration.current.locales[0]
+                val cardTranslator = remember { MermesI18nTranslator() }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onTestConnect)
+                    modifier = Modifier.clickable(onClick = {
+                        if (testState is SshConnectionState.Error) {
+                            val friendlyErr = cardTranslator.translate(testState.message, cardLocale)
+                            val formatStr = cardContext.getString(R.string.ssh_configs_test_failed, friendlyErr)
+                            Toast.makeText(cardContext, formatStr, Toast.LENGTH_LONG).show()
+                        }
+                        onTestConnect()
+                    })
                 ) {
                     when (testState) {
                         is SshConnectionState.Connecting -> {
@@ -449,7 +493,7 @@ private fun SshConfigCard(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "连接成功",
+                                text = stringResource(id = R.string.ssh_configs_status_connected),
                                 fontSize = 13.sp,
                                 color = Color(0xFF4CAF50),
                                 fontWeight = FontWeight.Medium
@@ -464,7 +508,7 @@ private fun SshConfigCard(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "测试失败",
+                                text = stringResource(id = R.string.ssh_configs_status_failed),
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.error,
                                 fontWeight = FontWeight.Medium,

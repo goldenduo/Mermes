@@ -120,7 +120,8 @@ fun MermesNavHost(
         // 平台网关
         composable(Screen.Gateway.route) {
             GatewayScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
 
@@ -173,7 +174,13 @@ fun MermesNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToSshConfigs = { navController.navigate(Screen.SshConfigs.route) },
                 onNavigateToProviders = { navController.navigate(Screen.Providers.route) },
-                onNavigateToModels = { navController.navigate(Screen.Models.route) }
+                onNavigateToModels = { navController.navigate(Screen.Models.route) },
+                onDisconnect = {
+                    isAuthenticated = false
+                    navController.navigate(Screen.Welcome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
