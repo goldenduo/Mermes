@@ -23,6 +23,8 @@ import com.mermes.app.ui.screens.providers.ProvidersScreen
 import com.mermes.app.ui.screens.schedules.SchedulesScreen
 import com.mermes.app.ui.screens.tools.ToolsScreen
 import com.mermes.app.ui.screens.settings.SettingsScreen
+import com.mermes.app.ui.screens.settings.SshConfigsScreen
+import com.mermes.app.ui.screens.settings.SshConfigEditScreen
 import com.mermes.app.ui.screens.office.OfficeScreen
 
 @Composable
@@ -61,6 +63,9 @@ fun MermesNavHost(
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Welcome.route) { inclusive = true }
                     }
+                },
+                onNavigateToSshConfigs = {
+                    navController.navigate(Screen.SshConfigs.route)
                 }
             )
         }
@@ -175,6 +180,25 @@ fun MermesNavHost(
         // 办公协同
         composable(Screen.Office.route) {
             OfficeScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // SSH 配置管理列表
+        composable(Screen.SshConfigs.route) {
+            SshConfigsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { configId ->
+                    navController.navigate(Screen.SshConfigEdit.createRoute(configId ?: "null"))
+                }
+            )
+        }
+
+        // SSH 配置编辑/新建
+        composable(Screen.SshConfigEdit.route) { backStackEntry ->
+            val configId = backStackEntry.arguments?.getString("configId")
+            SshConfigEditScreen(
+                configId = if (configId == "null" || configId == "new" || configId.isNullOrEmpty()) null else configId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

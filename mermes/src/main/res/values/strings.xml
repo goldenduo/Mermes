@@ -122,4 +122,60 @@
     <string name="error_no_space">设备存储空间不足，Termux 解包失败。</string>
     <string name="error_dpkg_error">Debian 依赖包损坏或版本冲突，正在自动尝试回退。</string>
     <string name="error_invalid_key">SSH 私钥文件解析失败，请确认密钥格式正确。</string>
+
+    <!-- 启动进度更新 -->
+    <string name="splash_checking_env">检查环境变量与已安装包…</string>
+    <string name="splash_installing_bootstrap">正在安装 Bootstrap 基础环境…</string>
+    <string name="splash_installing_debs">正在安装预制依赖包: %1$s (%2$d/%3$d)</string>
+    <string name="splash_env_ready">本地环境已就绪，秒速闪开中…</string>
+    <string name="splash_install_failed">环境初始化失败: %1$s</string>
+
+    <!-- SSH 配置管理列表 -->
+    <string name="ssh_configs_title">SSH 配置管理</string>
+    <string name="ssh_configs_empty">暂无 SSH 连接配置，请点击右下角按钮添加</string>
+    <string name="ssh_configs_add">添加 SSH 配置</string>
+    <string name="ssh_configs_test_connect">测试连接</string>
+    <string name="ssh_configs_set_default">设为默认</string>
+    <string name="ssh_configs_test_success">SSH 连接测试成功！</string>
+    <string name="ssh_configs_test_failed">SSH 连接测试失败: %1$s</string>
+    <string name="ssh_configs_delete_confirm">确定要删除 SSH 配置 \"%1$s\" 吗？</string>
+    <string name="ssh_configs_delete_success">SSH 配置已删除</string>
+    <string name="ssh_configs_test_connecting">正在测试连接…</string>
+
+    <!-- SSH 配置编辑表单 -->
+    <string name="ssh_edit_title_new">新建 SSH 配置</string>
+    <string name="ssh_edit_title_edit">编辑 SSH 配置</string>
+    <string name="ssh_edit_name">配置名称</string>
+    <string name="ssh_edit_name_hint">输入自定义配置名称，如：远程大模型</string>
+    <string name="ssh_edit_host">主机地址</string>
+    <string name="ssh_edit_host_hint">如 192.168.1.100 或 remote-server.com</string>
+    <string name="ssh_edit_port">SSH 端口</string>
+    <string name="ssh_edit_username">登录用户名</string>
+    <string name="ssh_edit_username_hint">如 root 或 admin</string>
+    <string name="ssh_edit_auth_type">身份验证方式</string>
+    <string name="ssh_edit_auth_password">密码验证</string>
+    <string name="ssh_edit_auth_key">密钥验证</string>
+    <string name="ssh_edit_password">登录密码</string>
+    <string name="ssh_edit_password_hint">请输入 SSH 用户登录密码</string>
+    <string name="ssh_edit_private_key">私钥路径</string>
+    <string name="ssh_edit_private_key_hint">私钥在设备上的绝对路径，如 /sdcard/id_rsa</string>
+    <string name="ssh_edit_passphrase">私钥口令</string>
+    <string name="ssh_edit_passphrase_hint">可选，解密该私钥所需的口令 (如有)</string>
+    <string name="ssh_edit_is_default">设为默认 SSH 连接模式</string>
+    <string name="ssh_edit_save_success">SSH 配置保存成功</string>
+    <string name="ssh_edit_save_failed">保存失败，请检查填写内容</string>
+    <string name="ssh_edit_invalid_fields">请补全所有必填项，或修正端口格式</string>
+
+    <!-- 凭证安全强加密 -->
+    <string name="ssh_secure_card_title">账户凭证强安全加密</string>
+    <string name="ssh_secure_encryption_enable">启用 Android KeyStore 强加密保护</string>
+    <string name="ssh_secure_encryption_desc">默认开启。利用 Android 系统级硬件安全密钥库生成专有 AES-GCM 对称密钥，对存储在本机的登录密码与私钥口令进行高强度强加密。防止设备被越狱或有恶意应用时导出或窥探您的敏感凭证。</string>
+
+    <!-- SSH 端口转发隧道 -->
+    <string name="ssh_tunnel_card_title">SSH 端口转发隧道 (Port Forwarding)</string>
+    <string name="ssh_tunnel_enable">启用本地端口转发隧道</string>
+    <string name="ssh_tunnel_local_port">本地监听端口</string>
+    <string name="ssh_tunnel_remote_host">远程转发目标主机</string>
+    <string name="ssh_tunnel_remote_port">远程转发目标端口</string>
+    <string name="ssh_tunnel_desc">启用后，当建立 SSH 连接时，系统会自动开启一条本地端口转发隧道。例如，将本地的 11434 端口加密映射到远程服务器的 127.0.0.1:11434。这使本地的大模型对话等服务可以直接且安全地与远程大模型（如 Ollama、Claw3D）进行对接。</string>
 </resources>

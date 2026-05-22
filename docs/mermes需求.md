@@ -59,7 +59,8 @@ App 在启动时通过原生进程和服务管理进行环境初始化，依赖�
   - 应用启动的入口与初次环境嗅探验证界面。展示沉浸式高档极光暗色系 Splash 面板，若环境未就绪平滑渐入 Wizard 风格的欢迎与三模式连接引导页。
 * **原生交互与系统集成**：
   - **三连接模式选择**：提供“本地 Termux 模式”（一键触发本地环境解包并拉起 Termux 核心容器进程）、“远程 HTTP 模式”（输入 Server URL 与可选 API Key，触发设备连接探测与 Spinner 动画）以及“远程 SSH 隧道模式”。
-  - **SSH 私钥文件管理器**：支持多套 SSH 凭证卡片，内置 SSH 私钥文件安全导入功能。调用 Android 原生 `DocumentProvider` 允许安全加载外部 `.pem` 或 `.key` 文件，静默建立 SSH tunnel 端口映射并实施后台心跳保活。
+  - **SSH 凭证管理器与加密保护**：支持多套 SSH 凭证卡片，内置 SSH 私钥文件安全导入功能（调用 Android 原生 `DocumentProvider` 允许安全加载外部 `.pem` 或 `.key` 文件）。为了保护用户敏感数据，系统提供**用户名与密码/私钥密码的加密存储**，写入 DataStore 时自动采用 AES-128 对称加密。
+  - **SSH 隧道配置与自动建立**：每个 SSH 配置均支持可选的“端口转发隧道”参数（本地映射端口与远程映射端口）。连接成功后，底层的 `SshCommandExecutor` 自动静默建立 SSH 本地端口转发隧道（Local Port Forwarding）以实现安全数据打通，并在 Executor 关闭时自动释放连接与端口映射。
 
 ### 3.2 依赖解包与大模型服务商引导配置 (Install & Setup Page)
 * **界面定位与原生布局**：
@@ -168,9 +169,9 @@ App 在启动时通过原生进程和服务管理进行环境初始化，依赖�
 ## 4. 交互流程与异常容错规范
 
 ### 4.1 强韧性启动三阶段逻辑
-1. **第一阶段：解包校验** — 校验 `$PREFIX` 等系统环境变量，跳过重复写入以保障闪开速度；若出错则激活退避算法自动进行 3 次重试。
-2. **第二阶段：依赖分析** — 采用 `resolvePackageOrder` 对 deb 包进行拓扑排序，解决循环依赖。
-3. **第三阶段：增量包部署** — 轮询安装，对于单包失败精准提取原因抛给 UI，但整体流转不挂起，最大限度保障主界面可用。
+1. **第一阶段：解包校验与自动解压 (MermesBootstrap)** — 启动时检查 `MermesBootstrap.isBootstrapInstalled(context)`，如果未安装则调用 `installBootstrap` 执行完整环境解包并配置环境变量。如果在该阶段失败，自动执行至多 3 次带有指数退避的自愈重试，最后通过 `MermesI18nTranslator` 对错误进行本地化翻译并抛给 UI。
+2. **第二阶段：预制依赖检测与增量部署 (DebInstaller)** — 环境就绪后，利用 `DebInstaller.isAllPresetInstalled(context)` 判定预制 Debian 依赖包（如 Python3、SQLite 等）是否全部正确安装。如果已全部安装，**自动跳过安装以实现闪开且避免重复写入**。
+3. **第三阶段：增量包拓扑安装与容错** — 若有部分或全部包未安装，利用 `DependencyResolver` 的 `resolvePackageOrder` 进行拓扑排序解决包循环依赖，并执行增量 `DebInstaller.installPresetPackages(...)` 进行静默轮询部署。个别包安装失败时精确捕获原因，不挂起整体初始化流转，保障终端最大程度可用。
 
 ### 4.2 网络与隧道保活自愈规范
 - **原生后台保活 (Foreground Service & WakeLock)**：由于 Android 系统的后台省电与墓碑机制，SSH 隧道与网关探针的后台执行容易被系统杀掉。App 在建立连接后注册一个轻量级的前台服务，在必要时持有短暂的 **WakeLock (唤醒锁)**，确保在锁屏状态下网络请求与本地套接字端口映射依然维持活性。

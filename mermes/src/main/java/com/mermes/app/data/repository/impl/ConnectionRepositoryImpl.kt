@@ -19,6 +19,7 @@ import com.mermes.app.data.remote.SshCommandExecutor
 import com.mermes.app.data.remote.HttpCommandExecutor
 import com.mermes.app.data.remote.TerminalCommandExecutor
 import com.mermes.app.data.repository.ConnectionRepository
+import com.mermes.app.utils.CryptoUtil
 import com.mermes.common.log.MermesLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,7 +55,19 @@ class ConnectionRepositoryImpl(
             val prefs = context.connectionDataStore.data.first()
             val json = prefs[SSH_CONFIGS_KEY] ?: return emptyList()
             val type = object : TypeToken<List<SshConfig>>() {}.type
-            gson.fromJson(json, type)
+            val configs = gson.fromJson<List<SshConfig>>(json, type)
+            
+            // 透明解密
+            configs.map { config ->
+                if (config.useEncryption) {
+                    config.copy(
+                        password = CryptoUtil.decrypt(config.password),
+                        passphrase = CryptoUtil.decrypt(config.passphrase)
+                    )
+                } else {
+                    config
+                }
+            }
         } catch (e: Exception) {
             MermesLog.e("ConnectionRepo", "Failed to get SSH configs", e)
             emptyList()
@@ -163,7 +176,11 @@ class ConnectionRepositoryImpl(
                 username = config.username,
                 password = config.password,
                 privateKeyPath = config.privateKeyPath,
-                passphrase = config.passphrase
+                passphrase = config.passphrase,
+                useTunnel = config.useTunnel,
+                localPort = config.localPort,
+                tunnelRemoteHost = config.tunnelRemoteHost,
+                tunnelRemotePort = config.tunnelRemotePort
             )
 
             // 测试 SSH 连接
@@ -180,7 +197,7 @@ class ConnectionRepositoryImpl(
                 _connectionState.value = SshConnectionState.Error("Failed to connect to ${config.host}")
             }
         } catch (e: Exception) {
-            _connectionState.value = SshConnectionState.Error("SSH connection failed", e)
+            _connectionState.value = SshConnectionState.Error("SSH connection failed: ${e.message}", e)
             MermesLog.e("ConnectionRepo", "SSH connection failed", e)
         }
     }
@@ -201,7 +218,11 @@ class ConnectionRepositoryImpl(
                 username = config.username,
                 password = config.password,
                 privateKeyPath = config.privateKeyPath,
-                passphrase = config.passphrase
+                passphrase = config.passphrase,
+                useTunnel = config.useTunnel,
+                localPort = config.localPort,
+                tunnelRemoteHost = config.tunnelRemoteHost,
+                tunnelRemotePort = config.tunnelRemotePort
             )
 
             val result = executor.execute("echo 'test'")
@@ -213,7 +234,7 @@ class ConnectionRepositoryImpl(
                 SshConnectionState.Error("Connection test failed")
             }
         } catch (e: Exception) {
-            SshConnectionState.Error("Connection test failed", e)
+            SshConnectionState.Error("Connection test failed: ${e.message}", e)
         }
     }
 
@@ -238,8 +259,18 @@ class ConnectionRepositoryImpl(
     fun getExecutor(): TerminalCommandExecutor? = currentExecutor
 
     private suspend fun saveSshConfigs(configs: List<SshConfig>) {
+        val encryptedConfigs = configs.map { config ->
+            if (config.useEncryption) {
+                config.copy(
+                    password = CryptoUtil.encrypt(config.password),
+                    passphrase = CryptoUtil.encrypt(config.passphrase)
+                )
+            } else {
+                config
+            }
+        }
         context.connectionDataStore.edit { prefs ->
-            prefs[SSH_CONFIGS_KEY] = gson.toJson(configs)
+            prefs[SSH_CONFIGS_KEY] = gson.toJson(encryptedConfigs)
         }
     }
 }

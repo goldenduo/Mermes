@@ -3,9 +3,10 @@ package com.mermes.core.deb
 import com.mermes.common.log.MermesLog as Log
 import org.apache.commons.compress.archivers.ar.ArArchiveEntry
 import org.apache.commons.compress.archivers.ar.ArArchiveInputStream
-import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
+import org.apache.commons.compress.compressors.CompressorStreamFactory
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import java.io.BufferedInputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -61,7 +62,7 @@ internal object DebParser {
      * Parse control.tar.xz to get control information
      */
     fun parseControl(controlData: ByteArray): DebControl {
-        val tarInput = TarArchiveInputStream(XZCompressorInputStream(ByteArrayInputStream(controlData)))
+        val tarInput = TarArchiveInputStream(getDecompressedStream(controlData))
 
         var entry: TarArchiveEntry? = tarInput.nextTarEntry
         while (entry != null) {
@@ -86,7 +87,7 @@ internal object DebParser {
      */
     fun extractData(dataData: ByteArray, targetDir: File): Int {
         var count = 0
-        val tarInput = TarArchiveInputStream(XZCompressorInputStream(ByteArrayInputStream(dataData)))
+        val tarInput = TarArchiveInputStream(getDecompressedStream(dataData))
 
         var entry: TarArchiveEntry? = tarInput.nextTarEntry
         while (entry != null) {
@@ -155,7 +156,7 @@ internal object DebParser {
         prefixDir: File,
         action: String // "install", "upgrade", "remove"
     ) {
-        val tarInput = TarArchiveInputStream(XZCompressorInputStream(ByteArrayInputStream(controlData)))
+        val tarInput = TarArchiveInputStream(getDecompressedStream(controlData))
 
         var entry: TarArchiveEntry? = tarInput.nextTarEntry
         while (entry != null) {
@@ -182,22 +183,57 @@ internal object DebParser {
      * Execute a single script
      */
     private fun executeScript(script: String, prefixDir: File, action: String) {
+        val localSh = File(prefixDir, "bin/sh")
+        // 1. 防御性提权
+        if (localSh.exists()) {
+            localSh.setExecutable(true, false)
+        }
+
+        var process: Process? = null
         try {
-            val process = ProcessBuilder(
-                "${prefixDir.absolutePath}/bin/sh",
+            // 2. 尝试使用本地 sh 运行，提供完整沙盒环境
+            process = ProcessBuilder(
+                localSh.absolutePath,
                 "-c",
                 script
             ).apply {
+                directory(prefixDir)
                 environment().apply {
-                    put("DPKG_MAINTSCRIPT_NAME", "postinst")
+                    put("PATH", "${prefixDir.absolutePath}/bin:${prefixDir.absolutePath}/usr/bin:/system/bin")
+                    put("LD_LIBRARY_PATH", "${prefixDir.absolutePath}/lib:${prefixDir.absolutePath}/usr/lib")
+                    put("DPKG_MAINTSCRIPT_NAME", action)
                     put("DPKG_MAINTSCRIPT_PACKAGE", "package")
+                    put("TERMUX_PREFIX", prefixDir.absolutePath)
                 }
                 redirectErrorStream(true)
             }.start()
-
-            process.waitFor()
         } catch (e: Exception) {
-            // Log but don't fail on script errors
+            Log.w(TAG, "Failed to run script with local sh, fallback to system sh: ${e.message}")
+            try {
+                // 3. 失败时 Fallback 到系统通用 sh 运行，注入本地 PATH 和库路径
+                process = ProcessBuilder(
+                    "/system/bin/sh",
+                    "-c",
+                    script
+                ).apply {
+                    directory(prefixDir)
+                    environment().apply {
+                        put("PATH", "${prefixDir.absolutePath}/bin:${prefixDir.absolutePath}/usr/bin:/system/bin")
+                        put("LD_LIBRARY_PATH", "${prefixDir.absolutePath}/lib:${prefixDir.absolutePath}/usr/lib")
+                        put("DPKG_MAINTSCRIPT_NAME", action)
+                        put("DPKG_MAINTSCRIPT_PACKAGE", "package")
+                        put("TERMUX_PREFIX", prefixDir.absolutePath)
+                    }
+                    redirectErrorStream(true)
+                }.start()
+            } catch (ex: Exception) {
+                Log.e(TAG, "Fatal: both local sh and system sh failed to execute script", ex)
+            }
+        }
+
+        try {
+            process?.waitFor()
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -236,6 +272,19 @@ internal object DebParser {
         if (filesIdx < 0) return path
 
         return afterPrefix.substring(filesIdx + "/files/usr/".length)
+    }
+
+    /**
+     * Get decompressed input stream adaptively based on the file content headers.
+     */
+    private fun getDecompressedStream(data: ByteArray): java.io.InputStream {
+        val bis = BufferedInputStream(ByteArrayInputStream(data))
+        return try {
+            CompressorStreamFactory().createCompressorInputStream(bis)
+        } catch (e: Exception) {
+            // Fallback for uncompressed tar or unrecognized format
+            ByteArrayInputStream(data)
+        }
     }
 }
 

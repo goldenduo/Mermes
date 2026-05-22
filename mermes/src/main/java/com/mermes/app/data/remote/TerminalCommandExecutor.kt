@@ -122,7 +122,11 @@ class SshCommandExecutor(
     private val username: String,
     private val password: String? = null,
     private val privateKeyPath: String? = null,
-    private val passphrase: String? = null
+    private val passphrase: String? = null,
+    private val useTunnel: Boolean = false,
+    private val localPort: Int = 11434,
+    private val tunnelRemoteHost: String = "127.0.0.1",
+    private val tunnelRemotePort: Int = 11434
 ) : TerminalCommandExecutor {
     private val gson = Gson()
     private var session: Session? = null
@@ -162,6 +166,23 @@ class SshCommandExecutor(
         newSession.setTimeout(30000)
 
         newSession.connect()
+
+        // 绑定本地端口转发隧道 (SSH Tunneling)
+        if (useTunnel) {
+            try {
+                newSession.delPortForwardingL(localPort)
+            } catch (e: Exception) {
+                // 忽略
+            }
+            try {
+                newSession.setPortForwardingL(localPort, tunnelRemoteHost, tunnelRemotePort)
+                MermesLog.i("SshCommandExecutor", "Local port forwarding established: 127.0.0.1:$localPort -> $tunnelRemoteHost:$tunnelRemotePort")
+            } catch (e: Exception) {
+                MermesLog.e("SshCommandExecutor", "Failed to establish port forwarding for port $localPort", e)
+                throw java.io.IOException("Port $localPort forwarding failed: ${e.message}", e)
+            }
+        }
+
         session = newSession
         MermesLog.i("SshCommandExecutor", "SSH session established to $host:$port")
         return newSession

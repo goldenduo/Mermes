@@ -122,4 +122,60 @@
     <string name="error_no_space">Disk space exhausted. Termux installation failed.</string>
     <string name="error_dpkg_error">Dependency package error or collision. Attempting automatic fallback.</string>
     <string name="error_invalid_key">Failed to parse SSH private key. Verify the key format.</string>
+
+    <!-- Splash progress updates -->
+    <string name="splash_checking_env">Checking environment variables &amp; installed packages…</string>
+    <string name="splash_installing_bootstrap">Installing Bootstrap base environment…</string>
+    <string name="splash_installing_debs">Installing preset package: %1$s (%2$d/%3$d)</string>
+    <string name="splash_env_ready">Local environment is ready, launching…</string>
+    <string name="splash_install_failed">Environment initialization failed: %1$s</string>
+
+    <!-- SSH Configs List -->
+    <string name="ssh_configs_title">SSH Configurations</string>
+    <string name="ssh_configs_empty">No SSH configurations yet. Tap the button below to add one.</string>
+    <string name="ssh_configs_add">Add SSH Config</string>
+    <string name="ssh_configs_test_connect">Test Connection</string>
+    <string name="ssh_configs_set_default">Set Default</string>
+    <string name="ssh_configs_test_success">SSH connection test succeeded!</string>
+    <string name="ssh_configs_test_failed">SSH connection test failed: %1$s</string>
+    <string name="ssh_configs_delete_confirm">Are you sure you want to delete SSH configuration \"%1$s\"?</string>
+    <string name="ssh_configs_delete_success">SSH configuration deleted</string>
+    <string name="ssh_configs_test_connecting">Testing connection…</string>
+
+    <!-- SSH Config Edit -->
+    <string name="ssh_edit_title_new">New SSH Configuration</string>
+    <string name="ssh_edit_title_edit">Edit SSH Configuration</string>
+    <string name="ssh_edit_name">Config Name</string>
+    <string name="ssh_edit_name_hint">Enter a custom name, e.g. Remote LLM</string>
+    <string name="ssh_edit_host">Host Address</string>
+    <string name="ssh_edit_host_hint">e.g. 192.168.1.100 or remote-server.com</string>
+    <string name="ssh_edit_port">SSH Port</string>
+    <string name="ssh_edit_username">Username</string>
+    <string name="ssh_edit_username_hint">e.g. root or admin</string>
+    <string name="ssh_edit_auth_type">Authentication Method</string>
+    <string name="ssh_edit_auth_password">Password</string>
+    <string name="ssh_edit_auth_key">Private Key</string>
+    <string name="ssh_edit_password">Login Password</string>
+    <string name="ssh_edit_password_hint">Enter SSH user login password</string>
+    <string name="ssh_edit_private_key">Private Key Path</string>
+    <string name="ssh_edit_private_key_hint">Absolute path on device, e.g. /sdcard/id_rsa</string>
+    <string name="ssh_edit_passphrase">Key Passphrase</string>
+    <string name="ssh_edit_passphrase_hint">Optional, passphrase for decrypting the key if any</string>
+    <string name="ssh_edit_is_default">Set as default SSH connection mode</string>
+    <string name="ssh_edit_save_success">SSH configuration saved successfully</string>
+    <string name="ssh_edit_save_failed">Failed to save, please check your inputs</string>
+    <string name="ssh_edit_invalid_fields">Please complete all required fields and enter a valid port</string>
+
+    <!-- Secure Encryption -->
+    <string name="ssh_secure_card_title">Secure Credential Encryption</string>
+    <string name="ssh_secure_encryption_enable">Enable Android KeyStore Encryption</string>
+    <string name="ssh_secure_encryption_desc">Enabled by default. Generates a private symmetric key inside the Android system-level hardware secure keystore (AES-GCM) to strongly encrypt your saved passwords and key passphrases. Prevents credentials from being dumped or inspected by other malicious applications on rooted or vulnerable devices.</string>
+
+    <!-- SSH Port Forwarding Tunnel -->
+    <string name="ssh_tunnel_card_title">SSH Port Forwarding Tunnel</string>
+    <string name="ssh_tunnel_enable">Enable Local Port Forwarding</string>
+    <string name="ssh_tunnel_local_port">Local Listening Port</string>
+    <string name="ssh_tunnel_remote_host">Remote Forward Host</string>
+    <string name="ssh_tunnel_remote_port">Remote Forward Port</string>
+    <string name="ssh_tunnel_desc">When enabled, an encrypted local port forwarding tunnel is automatically opened along with the SSH connection. For example, it maps local port 11434 to remote server\'s 127.0.0.1:11434. This allows local AI services or chat clients to securely communicate with remote LLM engines (such as Ollama or Claw3D).</string>
 </resources>

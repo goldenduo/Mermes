@@ -10,7 +10,6 @@ plugins {
 android {
     namespace = "com.mermes.core"
     compileSdk = 35
-
     defaultConfig {
         minSdk = 24
 

@@ -21,17 +21,19 @@ enum class ConnectionMode {
 package com.mermes.connection
 
 data class SshConfig(
-    val id: String,                  // 唯一标识 (UUID)
-    val name: String,                // 配置名称 (用户自定义)
-    val host: String,                // 主机地址
-    val port: Int = 22,              // SSH 端口
-    val username: String,            // 登录用户名
-    val authType: AuthType,          // 认证方式
-    val password: String? = null,    // 密码认证时的密码
+    val id: String,                     // 唯一标识 (UUID)
+    val name: String,                   // 配置名称 (用户自定义)
+    val host: String,                   // 主机地址
+    val port: Int = 22,                 // SSH 端口
+    val username: String,               // 登录用户名
+    val authType: AuthType,             // 认证方式
+    val password: String? = null,       // 密码认证时的密码
     val privateKeyPath: String? = null, // 密钥认证时的私钥路径
-    val passphrase: String? = null,  // 私钥密码 (如有)
-    val isDefault: Boolean = false,  // 是否为默认连接
-    val lastConnectedAt: Long = 0    // 最后连接时间戳
+    val passphrase: String? = null,     // 私钥密码 (如有)
+    val tunnelLocalPort: Int? = null,   // 隧道本地映射端口 (如 8080)
+    val tunnelRemotePort: Int? = null,  // 隧道远程目标端口 (如 8080)
+    val isDefault: Boolean = false,     // 是否为默认连接
+    val lastConnectedAt: Long = 0       // 最后连接时间戳
 )
 
 enum class AuthType {
@@ -76,6 +78,26 @@ interface SshConfigManager {
 
     // 测试 SSH 连接
     suspend fun testConnection(config: SshConfig): SshConnectionState
+}
+```
+
+### 0.5 密码安全存储加解密契约 (`MermesCrypto.kt`)
+
+为了保证 SSH 配置中敏感的密码 (`password`) 和私钥密码 (`passphrase`) 在本地持久化时不泄漏，底层 `common` 模块提供 `MermesCrypto` 静态加密辅助，在写入 preferencesDataStore 前执行加密，在读取时解密。
+
+```kotlin
+package com.mermes.common.security
+
+object MermesCrypto {
+    /**
+     * 加密明文，若传入 null 或空则返回 null
+     */
+    fun encrypt(plainText: String?): String?
+
+    /**
+     * 解密密文，若传入 null 或空则返回 null
+     */
+    fun decrypt(cipherText: String?): String?
 }
 ```
 

@@ -31,7 +31,12 @@ data class SshConfig(
     val privateKeyPath: String? = null, // 密钥认证时的私钥路径
     val passphrase: String? = null,     // 私钥密码 (如有)
     val isDefault: Boolean = false,     // 是否为默认连接
-    val lastConnectedAt: Long = 0       // 最后连接时间戳
+    val lastConnectedAt: Long = 0,      // 最后连接时间戳
+    val useEncryption: Boolean = true,  // 是否启用强安全加密
+    val useTunnel: Boolean = false,     // 是否启用本地端口转发隧道
+    val localPort: Int = 11434,         // 本地监听端口
+    val tunnelRemoteHost: String = "127.0.0.1", // 远程转发目标主机
+    val tunnelRemotePort: Int = 11434   // 远程转发目标端口
 )
 
 /**
