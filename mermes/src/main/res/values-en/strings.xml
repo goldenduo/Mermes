@@ -1,155 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mermes Console</string>
-    <string name="splash_installing">Deploying Mermes environment, please wait…</string>
-    <string name="splash_bootstrap">Installing bootstrap base environment…</string>
-    <string name="splash_bootstrap_retry">Bootstrap install failed. Retrying %1$d/%2$d…\nError: %3$s</string>
-    <string name="splash_bootstrap_failed">Bootstrap deployment failed and reached maximum retries.\nError: %1$s</string>
-    <string name="splash_bootstrap_failed_title">Bootstrap Installation Failed</string>
-    <string name="splash_deb">Installing package: %1$s (%2$d/%3$d)…</string>
-    <string name="splash_deb_retry">Package %1$s install failed. Retrying (%2$d/%3$d)…\nError: %4$s</string>
-    <string name="splash_done">Deployment completed, starting Mermes Console…</string>
-    
-    <string name="btn_retry">Retry Now</string>
-    <string name="btn_exit">Exit</string>
-    
-    <string name="main_title">Mermes Agent Dashboard</string>
+    <string name="app_name">Mermes</string>
 
-    <!-- Mode Selection -->
-    <string name="mode_selection_title">Select Connection Mode</string>
-    <string name="mode_selection_subtitle">Choose how to run Mermes</string>
-    <string name="mode_local_title">Local</string>
-    <string name="mode_local_desc">Run on device local environment</string>
-    <string name="mode_ssh_title">Remote SSH</string>
-    <string name="mode_ssh_desc">Connect to remote server via SSH</string>
-    <string name="saved_ssh_configs">Saved Connections</string>
-    <string name="mode_remote_gateway_toast">Remote HTTP Gateway is active by default! You can customize API settings directly in the app dashboard.</string>
-    
-    <!-- Welcome to Hermes Redesign -->
-    <string name="welcome_to_hermes">Welcome to Hermes</string>
-    <string name="welcome_subtitle">Your self-improving AI assistant that runs locally on your machine. Private, powerful, and always learning.</string>
-    <string name="btn_get_started">Get Started</string>
-    <string name="local_install_warning">This will install required components (Local extract and bootstrap)</string>
-    <string name="connect_via_ssh">Connect via SSH</string>
-    <string name="connect_remote_gateway">Connect to Remote Hermes</string>
-    <string name="or_divider">or</string>
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="back">Back</string>
+    <string name="loading">Loading…</string>
+    <string name="error">Error</string>
+    <string name="success">Success</string>
+    <string name="retry">Retry</string>
+    <string name="confirm">Confirm</string>
 
-    <!-- SSH Config -->
-    <string name="ssh_config_title">SSH Configuration</string>
-    <string name="ssh_config_name">Configuration Name</string>
-    <string name="ssh_config_name_hint">e.g. My Server</string>
-    <string name="ssh_host">Host</string>
-    <string name="ssh_host_hint">IP or domain</string>
-    <string name="ssh_port">Port</string>
-    <string name="ssh_username">Username</string>
-    <string name="ssh_username_hint">SSH login username</string>
-    <string name="ssh_auth_type">Authentication</string>
-    <string name="ssh_auth_password">Password</string>
-    <string name="ssh_auth_key">Private Key</string>
-    <string name="ssh_password">Password</string>
-    <string name="ssh_password_hint">Enter password</string>
-    <string name="ssh_private_key">Private Key File</string>
-    <string name="ssh_key_path_hint">Path to private key</string>
-    <string name="ssh_passphrase">Passphrase (optional)</string>
-    <string name="ssh_passphrase_hint">If key is passphrase protected</string>
-    <string name="browse">Browse</string>
-    <string name="test_connection">Test Connection</string>
-    <string name="testing_connection">Testing…</string>
-    <string name="save_and_connect">Save &amp; Connect</string>
-    <string name="connection_success">Connection successful!</string>
-    <string name="config_saved">Configuration saved</string>
-    <string name="config_save_failed">Save failed</string>
-    <string name="fill_required_fields">Please fill all required fields</string>
+    <!-- Bottom Navigation -->
+    <string name="nav_chat">Chat</string>
+    <string name="nav_kanban">Kanban</string>
+    <string name="nav_memory">Memory</string>
+    <string name="nav_gateway">Gateway</string>
 
-    <!-- Navigation Tabs -->
-    <string name="tab_chat">Chat</string>
-    <string name="tab_kanban">Kanban</string>
-    <string name="tab_memory">Memory</string>
-    <string name="tab_gateway">Gateway</string>
-    <string name="tab_settings">Settings</string>
+    <!-- Splash -->
+    <string name="splash_title">Mermes</string>
+    <string name="splash_subtitle">Smart Core Console</string>
 
-    <!-- Chat Console Screen -->
-    <string name="chat_input_hint">Send command to Mermes, type @ to trigger skills…</string>
-    <string name="chat_cost_floating">Estimated session cost: $%1$s | Tokens consumed: %2$d</string>
-    <string name="chat_tool_running">Running sandboxed tool: %1$s</string>
-    <string name="chat_click_view_logs">Click to reveal details and stdout logs</string>
-    
-    <!-- Kanban Screen -->
-    <string name="kanban_dispatch_btn">Dispatch Automation Pipeline</string>
-    <string name="kanban_empty_tasks">No tasks in this lane.</string>
-    <string name="kanban_blocked_flag">⚠️ Blocked: %1$s</string>
-    <string name="kanban_assign_prompt">Task Delegation &amp; Suspension</string>
-    
-    <!-- Memory & Profile Screen -->
-    <string name="memory_tab_title">Long-term Memory (MEMORY.md)</string>
-    <string name="profile_tab_title">User Profile (USER.md)</string>
-    <string name="memory_add_title">Add Memory Item</string>
-    <string name="profile_edit_hint">Write your customized profile here. AI will refine and polish your profile trends automatically…</string>
-    <string name="profile_ai_refine">AI Smart Polish</string>
-    
-    <!-- Gateway Screen -->
-    <string name="gateway_accordion_title">Platform Integration Gateways</string>
-    <string name="gateway_switch_active">Gateway Connected</string>
-    <string name="gateway_switch_inactive">Disconnected</string>
-    <string name="gateway_form_save_toast">Gateway status synchronized. Deploying visual effects and restarting daemon…</string>
+    <!-- Welcome -->
+    <string name="welcome_title">Welcome to Mermes</string>
+    <string name="welcome_subtitle">Select a connection mode to get started</string>
+    <string name="welcome_local_mode">Local Termux Mode</string>
+    <string name="welcome_local_desc">One-click local environment, no network required</string>
+    <string name="welcome_http_mode">Remote HTTP Mode</string>
+    <string name="welcome_http_desc">Connect to remote server via Server URL</string>
+    <string name="welcome_ssh_mode">Remote SSH Tunnel Mode</string>
+    <string name="welcome_ssh_desc">Secure connection via SSH tunnel</string>
+    <string name="welcome_connect">Connect</string>
 
-    <!-- Settings Screen -->
-    <string name="settings_title">Global Preferences</string>
-    <string name="settings_lang_title">Bilingual Hot Swap</string>
-    <string name="settings_lang_summary">Seamlessly toggle between Chinese and English in real-time with zero UI restarts</string>
-    <string name="settings_log_decouple_title">Safe Decoupled Log Switch</string>
-    <string name="settings_log_decouple_summary">Filter out system directories and sensitive structures to ensure crash logs are 100% compliant</string>
-    <string name="settings_tools_grid">Integrated Toolsets &amp; MCP Grid</string>
-    <string name="settings_mcp_title">Model Context Protocol (MCP) Server Management</string>
-    <string name="settings_model_catalog">Model Catalog Preset Configuration</string>
-    <string name="settings_model_discovery">Online Model Discovery</string>
+    <!-- Chat -->
+    <string name="chat_title">Smart Chat</string>
+    <string name="chat_input_hint">Type a message…</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_attach">Attach</string>
+    <string name="chat_camera">Camera</string>
+    <string name="chat_gallery">Gallery</string>
+    <string name="chat_file">File</string>
 
-    <!-- I18n Translator Errors -->
-    <string name="err_permission_denied">Permission denied. Please verify read/write or execution permissions.</string>
-    <string name="err_connection_refused">Connection refused. Ensure target service or SSH port is active.</string>
-    <string name="err_no_route_to_host">No route to host. Check device internet or VPN connectivity.</string>
-    <string name="err_connection_timeout">Connection timed out. Network is unstable or server is unresponsive.</string>
-    <string name="err_address_already_in_use">Address already in use. Please select a different port in Settings.</string>
-    <string name="err_no_space_left">Disk space exhausted. Termux installation failed.</string>
-    <string name="err_dpkg_error">Dependency package error or collision. Attempting automatic fallback.</string>
-    <string name="err_invalid_private_key">Failed to parse SSH private key. Verify the key format.</string>
-    <string name="err_unknown">An unknown system error occurred.</string>
+    <!-- Sessions -->
+    <string name="sessions_title">History Sessions</string>
+    <string name="sessions_search_hint">Search sessions…</string>
+    <string name="sessions_empty">No sessions yet</string>
+    <string name="sessions_delete_confirm">Delete this session?</string>
 
-    <!-- Default Schedules & Tools Mock Descriptions -->
-    <string name="job_weather_desc">Every day at 8:00 AM, automatically fetch Beijing weather and generate dressing guidelines to Feishu work group.</string>
-    <string name="job_github_desc">Every 30 minutes, inspect Mermes open-source repository PR and Issues updates, summarizing to Telegram channel.</string>
-    
-    <!-- System Skills Explorer -->
-    <string name="skill_python_desc">Provides basic Python interpreter capabilities and sandboxed runtime support.</string>
-    <string name="skill_web_desc">Distributed real-time search engine plugin based on Google Search API.</string>
+    <!-- Memory -->
+    <string name="memory_title">Long-term Memory</string>
+    <string name="memory_tab_memory">Memory</string>
+    <string name="memory_tab_profile">Profile</string>
+    <string name="memory_empty">No memory entries</string>
+    <string name="memory_ai_refine">AI Refine</string>
 
-    <!-- Chat Console UI Elements -->
-    <string name="chat_role_user">🧑 User</string>
-    <string name="chat_role_mermes">🤖 Mermes</string>
-    <string name="chat_connecting">Establishing network connection…</string>
-    <string name="chat_tool_inspecting_repo">Inspecting local code repositories…</string>
-    <string name="chat_tool_inspecting_python">Initiating Python runtime audit…</string>
-    <string name="chat_env_healthy">AI agent audit completed. Runtime environment is extremely healthy! Ready to assist with SSH tunnels.</string>
+    <!-- Kanban -->
+    <string name="kanban_title">Task Kanban</string>
+    <string name="kanban_create_task">Create Task</string>
+    <string name="kanban_dispatch">Dispatch</string>
 
-    <!-- Memory UI Elements -->
-    <string name="memory_empty">No long-term memories found. Tap the button below to create one.</string>
-    <string name="memory_item_format">💡 Item %1$d:\n%2$s</string>
-    <string name="memory_input_hint">Please enter a new memory entry</string>
-    <string name="memory_save_success">Memory saved successfully</string>
-    <string name="soul_edit_title">Edit Soul Persona (SOUL.md)</string>
-    <string name="soul_save_success">Soul persona settings applied successfully!</string>
-    <string name="soul_restore_default_success">Default soul configuration restored</string>
-    <string name="btn_restore_default">Restore Default</string>
-    <string name="btn_apply">Apply</string>
+    <!-- Gateway -->
+    <string name="gateway_title">Platform Gateway</string>
+    <string name="gateway_connected">Connected</string>
+    <string name="gateway_disconnected">Disconnected</string>
 
-    <!-- History UI Elements -->
-    <string name="history_empty">No historical chat sessions found.</string>
-    <string name="history_item_format">💬 Chat: %1$s\nTime: %2$s | Messages: %3$d</string>
+    <!-- Skills -->
+    <string name="skills_title">Skills &amp; Plugins</string>
+    <string name="skills_install">Install</string>
+    <string name="skills_installed">Installed</string>
 
-    <!-- Kanban UI Elements -->
-    <string name="kanban_empty_logs">📊 Kanban Task Pipeline:\n-------------------------\nNo running tasks locally. Tap below to dispatch the pipeline.</string>
-    <string name="kanban_data_logs">📊 Kanban Data Logs:\n-------------------------\n%1$s</string>
-    <string name="kanban_dispatch_logs">📈 Kanban Dispatch Logs:\n-------------------------\n%1$s</string>
+    <!-- Soul -->
+    <string name="soul_title">Soul Settings</string>
+    <string name="soul_reset">Reset Soul</string>
+    <string name="soul_reset_confirm">Reset soul to factory defaults?</string>
 
-    <!-- Skills UI Elements -->
-    <string name="skill_item_format">🔌 Ready Extension: %1$s\nDescription: %2$s</string>
+    <!-- Models -->
+    <string name="models_title">Model Library</string>
+    <string name="models_add">Add Model</string>
+    <string name="models_discover">Discover Models</string>
+
+    <!-- Providers -->
+    <string name="providers_title">Provider Settings</string>
+    <string name="providers_api_key_hint">Enter API Key</string>
+
+    <!-- Schedules -->
+    <string name="schedules_title">Scheduled Tasks</string>
+    <string name="schedules_create">New Task</string>
+    <string name="schedules_pause">Pause</string>
+    <string name="schedules_run">Run Now</string>
+
+    <!-- Tools -->
+    <string name="tools_title">Tools &amp; MCP</string>
+    <string name="tools_system">System Tools</string>
+    <string name="tools_mcp">MCP Servers</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Global Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_zh">中文</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_ssh_configs">SSH Configs</string>
+    <string name="settings_providers">Providers</string>
+    <string name="settings_models">Models</string>
+    <string name="settings_log_toggle">Log Sanitization</string>
+
+    <!-- Office -->
+    <string name="office_title">Office (Claw3D)</string>
+    <string name="office_reload">Reload</string>
+    <string name="office_external">Open External</string>
+
+    <!-- Error Messages -->
+    <string name="error_permission_denied">Permission denied. Please verify read/write or execution permissions.</string>
+    <string name="error_connection_refused">Connection refused. Ensure target service or SSH port is active.</string>
+    <string name="error_no_route">No route to host. Check device internet or VPN connectivity.</string>
+    <string name="error_connection_timeout">Connection timed out. Network is unstable or server is unresponsive.</string>
+    <string name="error_address_in_use">Address already in use. Please select a different port in Settings.</string>
+    <string name="error_no_space">Disk space exhausted. Termux installation failed.</string>
+    <string name="error_dpkg_error">Dependency package error or collision. Attempting automatic fallback.</string>
+    <string name="error_invalid_key">Failed to parse SSH private key. Verify the key format.</string>
 </resources>

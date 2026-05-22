@@ -9,14 +9,21 @@ App 在启动时通过原生进程和服务管理进行环境初始化，依赖�
 
 ## 2. 模块规格
 - **模块类型**: 纯原生 Android 应用程序 (Pure Native Android Application, 可打包为独立 APK)
-- **物理路径 / 承载模块**: `terminal/` (应用入口主模块)
+- **物理路径 / 承载模块**: `mermes/` (应用入口主模块)
 - **应用包名 (applicationId)**: `com.mermes`
 - **命名空间 (namespace)**: `com.mermes.app`
 - **最低支持 SDK 版本 (minSdk)**: API 24 (Android 7.0)
-- **目标 SDK 版本 (targetSdk)**: API 28 (Android 9.0)
-- **核心开发语言**: Kotlin 1.9+
+- **目标 SDK 版本 (targetSdk)**: API 35 (Android 15)
+- **核心开发语言**: Kotlin 2.0+
 - **异步与线程管控**: Kotlin Coroutines (协程) + Kotlin Flow (数据流)
-- **UI 渲染引擎**: Jetpack Compose 与原生 MD3 视图组件体系（100% 纯原生绘制）
+- **UI 渲染引擎**: Jetpack Compose 与 Material Design 3 组件体系（100% 纯原生绘制）
+- **架构模式**: MVVM (Model-View-ViewModel) + Repository Pattern
+- **导航框架**: Navigation Compose
+- **状态管理**: StateFlow + collectAsState
+- **依赖注入**: 手动注入（后续可迁移至 Hilt）
+- **网络层**: OkHttp + Retrofit
+- **本地存储**: DataStore Preferences
+- **图片加载**: Coil Compose
 
 ---
 
