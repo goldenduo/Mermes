@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF0D1117">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:gravity="center"
+                android:text="←"
+                android:textColor="#FFFFFFFF"
+                android:textSize="20sp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/ssh_config_title"
+                android:textColor="#FFFFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="40dp"
+                android:layout_height="40dp" />
+
+        </LinearLayout>
+
+        <!-- Config Name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ssh_config_name"
+            android:textColor="#FF8B949E"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editConfigName"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#FF21262D"
+            android:hint="@string/ssh_config_name_hint"
+            android:inputType="text"
+            android:paddingHorizontal="16dp"
+            android:textColor="#FFFFFFFF"
+            android:textColorHint="#FF484F58"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Host -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ssh_host"
+            android:textColor="#FF8B949E"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editHost"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#FF21262D"
+            android:hint="@string/ssh_host_hint"
+            android:inputType="text"
+            android:paddingHorizontal="16dp"
+            android:textColor="#FFFFFFFF"
+            android:textColorHint="#FF484F58"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Port -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ssh_port"
+            android:textColor="#FF8B949E"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editPort"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#FF21262D"
+            android:hint="22"
+            android:inputType="number"
+            android:paddingHorizontal="16dp"
+            android:textColor="#FFFFFFFF"
+            android:textColorHint="#FF484F58"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Username -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ssh_username"
+            android:textColor="#FF8B949E"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editUsername"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#FF21262D"
+            android:hint="@string/ssh_username_hint"
+            android:inputType="text"
+            android:paddingHorizontal="16dp"
+            android:textColor="#FFFFFFFF"
+            android:textColorHint="#FF484F58"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Auth Type -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ssh_auth_type"
+            android:textColor="#FF8B949E"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAuthPassword"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/ssh_auth_password"
+                android:textColor="#FFFFFFFF"
+                android:backgroundTint="#FF21262D"
+                android:layout_marginBottom="0dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAuthKey"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="@string/ssh_auth_key"
+                android:textColor="#FFFFFFFF"
+                android:backgroundTint="#FF21262D"
+                android:layout_marginBottom="0dp" />
+
+        </LinearLayout>
+
+        <!-- Password Field (shown when PASSWORD auth selected) -->
+        <LinearLayout
+            android:id="@+id/layoutPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ssh_password"
+                android:textColor="#FF8B949E"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/editPassword"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#FF21262D"
+                android:hint="@string/ssh_password_hint"
+                android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
+                android:textColor="#FFFFFFFF"
+                android:textColorHint="#FF484F58"
+                android:layout_marginBottom="20dp" />
+
+        </LinearLayout>
+
+        <!-- Key File Field (shown when KEY auth selected) -->
+        <LinearLayout
+            android:id="@+id/layoutKeyFile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ssh_private_key"
+                android:textColor="#FF8B949E"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="20dp">
+
+                <EditText
+                    android:id="@+id/editKeyPath"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="#FF21262D"
+                    android:hint="@string/ssh_key_path_hint"
+                    android:inputType="text"
+                    android:paddingHorizontal="16dp"
+                    android:textColor="#FFFFFFFF"
+                    android:textColorHint="#FF484F58"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBrowseKey"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:text="@string/browse"
+                    android:textColor="#FFFFFFFF"
+                    android:backgroundTint="#FF21262D" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ssh_passphrase"
+                android:textColor="#FF8B949E"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/editPassphrase"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#FF21262D"
+                android:hint="@string/ssh_passphrase_hint"
+                android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
+                android:textColor="#FFFFFFFF"
+                android:textColorHint="#FF484F58"
+                android:layout_marginBottom="20dp" />
+
+        </LinearLayout>
+
+        <!-- Buttons -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTestConnection"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/test_connection"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="#FF21262D" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/save_and_connect"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="#FF238636" />
+
+    </LinearLayout>
+
+</ScrollView>

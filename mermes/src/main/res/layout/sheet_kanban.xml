@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="500dp"
+    android:background="#161720"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📊 Mermes 任务看板与流水线调度"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:background="#1A1B24"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/textLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#AFB2C2"
+            android:textSize="13sp"
+            android:lineSpacingExtra="4dp"
+            android:text="正在拉取看板任务数据，请稍候…" />
+
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btnDispatch"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="16dp"
+        android:text="运行 hermes kanban dispatch 调度"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#2563EB" />
+
+</LinearLayout>

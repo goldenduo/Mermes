@@ -283,11 +283,11 @@ Log.e("MermesInit", "Fatal error occurred during unzip", exception)
 
 ---
 
-## 6. 错误语义解析与双语翻译包装器 (`I18nTranslator`) 契约
+## 6. 错误语义多语言翻译契约 (I18nTranslator)
 
-为配合 UI 的中英文热切换机制，底层通信、SSH 隧道以及 Shell 运行抛出的英文报错由 `I18nTranslator` 解析并转换为多语言用户友好文本。
+为支撑界面对标 3.15 Settings 与 5.2 节的免重启 Bilingual 交互，底层 `common` 模块提供 `MermesI18nTranslator` 错误包装器，对 SSH 连接、Termux 运行或 Python 脚本抛出的原生英文报错提供精准的语义解析并翻译成普通用户易懂的本地化语言。
 
-### 6.1 翻译器契约接口 (`I18nTranslator.kt`)
+### 6.1 翻译器契约接口 (`MermesI18nTranslator.kt`)
 ```kotlin
 package com.mermes.common.i18n
 

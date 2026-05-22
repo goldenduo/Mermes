@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Outer gold circle -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M48,8C25.9,8 8,25.9 8,48s17.9,40 40,40s40,-17.9 40,-40S70.1,8 48,8zM48,82C29.2,82 14,66.8 14,48S29.2,14 48,14s34,15.2 34,34S66.8,82 48,82z" />
+    <!-- Golden wings -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M24,36c4,0 12,2 18,8c-3,-6 -4,-12 -1,-16c3,-4 9,-4 11,-1c1,2 0,6 -2,9c6,-8 14,-10 18,-6c4,4 2,12 -1,16c6,-6 14,-8 18,-8c2,0 3,1 3,2c0,3 -10,8 -19,8H24c-9,0 -19,-5 -19,-8C5,37 6,36 24,36z" />
+    <!-- Golden rod / caduceus body -->
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M46,30h4v36h-4z" />
+    <!-- Golden snakes wrapping -->
+    <path
+        android:fillColor="#FFC107"
+        android:pathData="M48,34c-4,0 -6,3 -6,5s2,5 6,5s6,3 6,5s-2,5 -6,5h-2v4h2c6,0 10,-4 10,-9s-4,-5 -8,-5s-4,-3 -4,-5s2,-5 6,-5h2v-4H48z" />
+    <!-- Rod top sphere -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M48,22m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+</vector>

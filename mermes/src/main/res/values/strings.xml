@@ -1,0 +1,159 @@
+<resources>
+    <string name="app_name">Mermes 控制台</string>
+    <string name="splash_installing">正在部署 Mermes 运行环境，请稍候…</string>
+    <string name="splash_bootstrap">正在安装 Bootstrap 基础环境…</string>
+    <string name="splash_bootstrap_retry">Bootstrap 安装异常，正在进行第 %1$d/%2$d 次自动重试…\n错误: %3$s</string>
+    <string name="splash_bootstrap_failed">Bootstrap 部署失败，且已达最大重试上限。\n错误: %1$s</string>
+    <string name="splash_bootstrap_failed_title">Bootstrap 部署失败</string>
+    <string name="splash_deb">正在安装预置包: %1$s (%2$d/%3$d)…</string>
+    <string name="splash_deb_retry">预置包 %1$s 安装异常，正在重试 (%2$d/%3$d)…\n错误: %4$s</string>
+    <string name="splash_done">部署完成，正在启动 Mermes 控制台…</string>
+    
+    <string name="btn_retry">立即重试</string>
+    <string name="btn_exit">退出应用</string>
+    <string name="btn_cancel">取消</string>
+    <string name="btn_save">保存</string>
+    
+    <string name="main_title">Mermes 智能核心控制台</string>
+
+    <!-- Mode Selection -->
+    <string name="mode_selection_title">选择连接模式</string>
+    <string name="mode_selection_subtitle">选择运行 Mermes 的方式</string>
+    <string name="mode_local_title">本地 Termux 模式</string>
+    <string name="mode_local_desc">使用设备本地 Termux environment解包运行</string>
+    <string name="mode_ssh_title">远程 SSH 隧道模式</string>
+    <string name="mode_ssh_desc">通过 SSH 安全隧道端口映射连接远程服务器</string>
+    <string name="mode_http_title">远程 HTTP 模式</string>
+    <string name="mode_http_desc">输入 Server API 端点与 Key 建立极速通讯</string>
+    <string name="saved_ssh_configs">已保存的 SSH 隧道凭证</string>
+    <string name="mode_remote_gateway_toast">远程 HTTP 网关模式已默认激活！您可在主控台设置中直接调整大模型及服务商接口配置。</string>
+    
+    <!-- Welcome to Hermes Redesign -->
+    <string name="welcome_to_hermes">欢迎使用 Mermes</string>
+    <string name="welcome_subtitle">100% 纯原生 Android 自学习智能看板与主控制台，本地安全，保活保真。</string>
+    <string name="btn_get_started">本地开启体验</string>
+    <string name="local_install_warning">这将在本地自动解包并部署所需的环境组件</string>
+    <string name="connect_via_ssh">通过 SSH 安全隧道连接</string>
+    <string name="connect_remote_gateway">连接至远程 HTTP 网关</string>
+    <string name="or_divider">或</string>
+
+    <!-- SSH Config -->
+    <string name="ssh_config_title">SSH 隧道配置</string>
+    <string name="ssh_config_name">配置名称</string>
+    <string name="ssh_config_name_hint">例如：我的远程主机</string>
+    <string name="ssh_host">主机地址</string>
+    <string name="ssh_host_hint">IP 或域名</string>
+    <string name="ssh_port">端口</string>
+    <string name="ssh_username">用户名</string>
+    <string name="ssh_username_hint">SSH 登录用户名</string>
+    <string name="ssh_auth_type">认证方式</string>
+    <string name="ssh_auth_password">密码认证</string>
+    <string name="ssh_auth_key">密钥认证 (DocumentProvider)</string>
+    <string name="ssh_password">密码</string>
+    <string name="ssh_password_hint">输入密码</string>
+    <string name="ssh_private_key">私钥文件 (.pem / .key)</string>
+    <string name="ssh_key_path_hint">请点击浏览导入私钥文件</string>
+    <string name="ssh_passphrase">私钥密码（可选）</string>
+    <string name="ssh_passphrase_hint">如果私钥有密码保护</string>
+    <string name="browse">浏览导入</string>
+    <string name="test_connection">测试 SSH 隧道</string>
+    <string name="testing_connection">建立连接中…</string>
+    <string name="save_and_connect">保存并建立隧道</string>
+    <string name="connection_success">连接测试成功，心跳健康！</string>
+    <string name="config_saved">配置已保存</string>
+    <string name="config_save_failed">保存失败</string>
+    <string name="fill_required_fields">请填写所有必填字段</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_chat">智能对话</string>
+    <string name="tab_kanban">任务看板</string>
+    <string name="tab_memory">长期记忆</string>
+    <string name="tab_gateway">平台网关</string>
+    <string name="tab_settings">全局设置</string>
+
+    <!-- Chat Console Screen -->
+    <string name="chat_input_hint">给 Mermes 发送指令，输入 @ 触发技能…</string>
+    <string name="chat_cost_floating">本次会话估算成本: $%1$s | 已消耗 Tokens: %2$d</string>
+    <string name="chat_tool_running">正在运行沙箱工具: %1$s</string>
+    <string name="chat_click_view_logs">点击拉帘查看实时运行日志</string>
+    
+    <!-- Kanban Screen -->
+    <string name="kanban_dispatch_btn">唤醒自动化链 (Dispatch)</string>
+    <string name="kanban_empty_tasks">本泳道暂无任务卡片。</string>
+    <string name="kanban_blocked_flag">⚠️ 已挂起阻碍: %1$s</string>
+    <string name="kanban_assign_prompt">任务转移指派与挂起</string>
+    
+    <!-- Memory & Profile Screen -->
+    <string name="memory_tab_title">长期记忆 (MEMORY.md)</string>
+    <string name="profile_tab_title">用户画像 (USER.md)</string>
+    <string name="memory_add_title">添加长期记忆条目</string>
+    <string name="profile_edit_hint">请编写您的个性化画像，AI 将在此基础上自动提炼与润色个性倾向…</string>
+    <string name="profile_ai_refine">AI 自动润色提炼</string>
+    
+    <!-- Gateway Screen -->
+    <string name="gateway_accordion_title">三方集成平台网关控制</string>
+    <string name="gateway_switch_active">网关已激活</string>
+    <string name="gateway_switch_inactive">已断开连接</string>
+    <string name="gateway_form_save_toast">网关状态同步成功，正在前台部署粒子动效并重启守护进程…</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">全局偏好设置</string>
+    <string name="settings_lang_title">中英文语言一键热切换</string>
+    <string name="settings_lang_summary">支持一键在中文（简体）和 English 之间无感热切换，界面零重启</string>
+    <string name="settings_log_decouple_title">发布级日志脱敏开关</string>
+    <string name="settings_log_decouple_summary">开启后将过滤底层目录及敏感字段以确保崩溃日志绝对合规安全</string>
+    <string name="settings_tools_grid">系统集成 Tools 与 MCP 网格</string>
+    <string name="settings_mcp_title">Model Context Protocol (MCP) 服务器管理</string>
+    <string name="settings_model_catalog">可用大模型预设库 (Models)</string>
+    <string name="settings_model_discovery">模型在线自动发现 (Model Discovery)</string>
+
+    <!-- I18n Translator Errors -->
+    <string name="err_permission_denied">权限不足，请确认文件读写或执行权限。</string>
+    <string name="err_connection_refused">连接被拒绝，请确认目标服务或 SSH 端口已开启。</string>
+    <string name="err_no_route_to_host">路由不可达，请检查设备网络或 VPN 连通状态。</string>
+    <string name="err_connection_timeout">连接超时，可能网络丢包或远程服务器无响应。</string>
+    <string name="err_address_already_in_use">端口已被占用，请尝试在设置中更换服务映射端口。</string>
+    <string name="err_no_space_left">设备存储空间不足，Termux 解包失败。</string>
+    <string name="err_dpkg_error">Debian 依赖包损坏或版本冲突，正在自动尝试回退。</string>
+    <string name="err_invalid_private_key">SSH 私钥文件解析失败，请确认密钥格式正确。</string>
+    <string name="err_unknown">发生未知系统错误。</string>
+
+    <!-- Default Schedules & Tools Mock Descriptions -->
+    <string name="job_weather_desc">每天早上八点，为团队自动抓取北京天气并生成穿衣保暖指南，发送至飞书工作群。</string>
+    <string name="job_github_desc">每30分钟自动检查一次 Mermes 开源仓库的 PR 与 Issues 动态，总结后投递至开发者 Telegram 频道。</string>
+    
+    <!-- System Skills Explorer -->
+    <string name="skill_python_desc">提供基础的 Python 分析与本地沙箱运行支持。</string>
+    <string name="skill_web_desc">基于 Google Search 技能的分布式实时信息检索扩展包。</string>
+
+    <!-- Chat Console UI Elements -->
+    <string name="chat_role_user">🧑 用户</string>
+    <string name="chat_role_mermes">🤖 Mermes</string>
+    <string name="chat_connecting">正在建立网络连接…</string>
+    <string name="chat_tool_inspecting_repo">正在检索本地代码库…</string>
+    <string name="chat_tool_inspecting_python">正在启动 Python 运行环境审计…</string>
+    <string name="chat_env_healthy">智能核心分析完毕。所有运行环境均非常完美健康！我将协助您掌控本地与远程 SSH 连接。</string>
+
+    <!-- Memory UI Elements -->
+    <string name="memory_empty">暂无长期记忆条目，可点击下方按钮创建。</string>
+    <string name="memory_item_format">💡 条目 %1$d:\n%2$s</string>
+    <string name="memory_input_hint">请输入新的长期记忆条目</string>
+    <string name="memory_save_success">记忆保存成功</string>
+    <string name="soul_edit_title">编辑灵魂性格 (SOUL.md)</string>
+    <string name="soul_save_success">灵魂设定应用成功！</string>
+    <string name="soul_restore_default_success">已恢复默认灵魂配置</string>
+    <string name="btn_restore_default">恢复默认</string>
+    <string name="btn_apply">应用</string>
+
+    <!-- History UI Elements -->
+    <string name="history_empty">未查询到任何历史会话记录。</string>
+    <string name="history_item_format">💬 会话: %1$s\n时间: %2$s | 消息数: %3$d</string>
+
+    <!-- Kanban UI Elements -->
+    <string name="kanban_empty_logs">📊 任务看板列表：\n-------------------------\n当前本地无运行中的任务，点击下方按钮激活看板流水线。</string>
+    <string name="kanban_data_logs">📊 任务看板数据：\n-------------------------\n%1$s</string>
+    <string name="kanban_dispatch_logs">📈 看板流水线激活调度日志：\n-------------------------\n%1$s</string>
+
+    <!-- Skills UI Elements -->
+    <string name="skill_item_format">🔌 已就绪系统扩展: %1$s\n描述: %2$s</string>
+</resources>
