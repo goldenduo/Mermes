@@ -104,11 +104,12 @@ object TerminalManager {
         val homeDir = MermesPaths.getHomeDir(context)
         val workDir = if (homeDir.exists()) homeDir.absolutePath else "/"
 
-        // Use minimal environment
+        // Use minimal environment (with UTF-8 locale for proper text rendering)
         val env = mapOf(
             "HOME" to workDir,
             "PATH" to "/system/bin:/system/xbin",
-            "TERM" to "xterm-256color"
+            "TERM" to "xterm-256color",
+            "LANG" to "en_US.UTF-8"
         )
 
         val args = arrayOf("sh")
@@ -163,7 +164,7 @@ object TerminalManager {
      */
     fun writeToSession(session: TerminalSession, text: String, newline: Boolean = false) {
         val data = if (newline) "$text\n" else text
-        writeToSession(session, data.toByteArray())
+        writeToSession(session, data.toByteArray(Charsets.UTF_8))
     }
 
     /**

@@ -1,7 +1,10 @@
 package com.mermes.app
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -59,7 +62,12 @@ class TerminalFragment : Fragment() {
     private fun setupShortcutKeys(view: View) {
         val tv = terminalView ?: return
 
-        view.findViewById<Button>(R.id.btnEsc).setOnClickListener {
+        // Helper: add long-press repeat to a button
+        fun Button.setRepeatAction(action: () -> Unit) {
+            setOnTouchListener(RepeatTouchListener(action))
+        }
+
+        view.findViewById<Button>(R.id.btnEsc).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_ESCAPE)
         }
 
@@ -83,35 +91,35 @@ class TerminalFragment : Fragment() {
             btnAlt.setOnCheckedChangeListener { _, isChecked -> tv.isAltToggled = isChecked }
         }
 
-        view.findViewById<Button>(R.id.btnTab).setOnClickListener {
+        view.findViewById<Button>(R.id.btnTab).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_TAB)
         }
 
-        view.findViewById<Button>(R.id.btnMinus).setOnClickListener {
+        view.findViewById<Button>(R.id.btnMinus).setRepeatAction {
             tv.sendText("-")
         }
 
-        view.findViewById<Button>(R.id.btnSlash).setOnClickListener {
+        view.findViewById<Button>(R.id.btnSlash).setRepeatAction {
             tv.sendText("/")
         }
 
-        view.findViewById<Button>(R.id.btnPipe).setOnClickListener {
+        view.findViewById<Button>(R.id.btnPipe).setRepeatAction {
             tv.sendText("|")
         }
 
-        view.findViewById<Button>(R.id.btnHome).setOnClickListener {
+        view.findViewById<Button>(R.id.btnHome).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_MOVE_HOME)
         }
 
-        view.findViewById<Button>(R.id.btnEnd).setOnClickListener {
+        view.findViewById<Button>(R.id.btnEnd).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_MOVE_END)
         }
 
-        view.findViewById<Button>(R.id.btnPgUp).setOnClickListener {
+        view.findViewById<Button>(R.id.btnPgUp).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_PAGE_UP)
         }
 
-        view.findViewById<Button>(R.id.btnPgDn).setOnClickListener {
+        view.findViewById<Button>(R.id.btnPgDn).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_PAGE_DOWN)
         }
 
@@ -119,27 +127,27 @@ class TerminalFragment : Fragment() {
             tv.pasteFromClipboard()
         }
 
-        view.findViewById<Button>(R.id.btnUp).setOnClickListener {
+        view.findViewById<Button>(R.id.btnUp).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_UP)
         }
 
-        view.findViewById<Button>(R.id.btnDown).setOnClickListener {
+        view.findViewById<Button>(R.id.btnDown).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_DOWN)
         }
 
-        view.findViewById<Button>(R.id.btnLeft).setOnClickListener {
+        view.findViewById<Button>(R.id.btnLeft).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_LEFT)
         }
 
-        view.findViewById<Button>(R.id.btnRight).setOnClickListener {
+        view.findViewById<Button>(R.id.btnRight).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_RIGHT)
         }
 
-        view.findViewById<Button>(R.id.btnEnter).setOnClickListener {
+        view.findViewById<Button>(R.id.btnEnter).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_ENTER)
         }
 
-        view.findViewById<Button>(R.id.btnSpace).setOnClickListener {
+        view.findViewById<Button>(R.id.btnSpace).setRepeatAction {
             tv.sendText(" ")
         }
 
@@ -164,7 +172,7 @@ class TerminalFragment : Fragment() {
     fun onBackPressed(): Boolean {
         // Send ESC to terminal
         val session = terminalView?.getSession() ?: return false
-        TerminalManager.writeToSession(session, "\u001B".toByteArray())
+        TerminalManager.writeToSession(session, "\u001B".toByteArray(Charsets.UTF_8))
         return true
     }
 
@@ -172,5 +180,46 @@ class TerminalFragment : Fragment() {
         terminalView?.detachSession()
         terminalView = null
         super.onDestroyView()
+    }
+
+    /**
+     * TouchListener that fires action on press, then repeats while held.
+     */
+    private class RepeatTouchListener(
+        private val action: () -> Unit
+    ) : View.OnTouchListener {
+        private val handler = Handler(Looper.getMainLooper())
+        private var isRepeating = false
+
+        private val repeatRunnable = object : Runnable {
+            override fun run() {
+                action()
+                handler.postDelayed(this, REPEAT_INTERVAL_MS)
+            }
+        }
+
+        override fun onTouch(v: View, event: MotionEvent): Boolean {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    v.isPressed = true
+                    action()
+                    isRepeating = true
+                    handler.postDelayed(repeatRunnable, REPEAT_DELAY_MS)
+                    return true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.isPressed = false
+                    isRepeating = false
+                    handler.removeCallbacks(repeatRunnable)
+                    return true
+                }
+            }
+            return false
+        }
+
+        companion object {
+            private const val REPEAT_DELAY_MS = 400L   // delay before repeat starts
+            private const val REPEAT_INTERVAL_MS = 80L  // repeat interval
+        }
     }
 }

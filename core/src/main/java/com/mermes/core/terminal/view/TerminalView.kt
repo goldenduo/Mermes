@@ -182,7 +182,7 @@ class TerminalView @JvmOverloads constructor(
             val emu = emulator
             if (emu != null) {
                 val msg = "\r\n[Process completed (code $exitCode)]\r\n"
-                emu.append(msg.toByteArray())
+                emu.append(msg.toByteArray(Charsets.UTF_8))
                 post { invalidate() }
             }
         }
@@ -553,7 +553,7 @@ class TerminalView @JvmOverloads constructor(
 
     private fun sendChar(ch: Char) {
         session?.let {
-            TerminalManager.writeToSession(it, ch.toString().toByteArray())
+            TerminalManager.writeToSession(it, ch.toString().toByteArray(Charsets.UTF_8))
         }
     }
 
@@ -562,13 +562,13 @@ class TerminalView @JvmOverloads constructor(
      */
     fun sendText(text: String) {
         session?.let {
-            TerminalManager.writeToSession(it, text.toByteArray())
+            TerminalManager.writeToSession(it, text.toByteArray(Charsets.UTF_8))
         }
     }
 
     private fun sendEscape(seq: String) {
         session?.let {
-            TerminalManager.writeToSession(it, "\u001B$seq".toByteArray())
+            TerminalManager.writeToSession(it, "\u001B$seq".toByteArray(Charsets.UTF_8))
         }
     }
 
@@ -585,7 +585,7 @@ class TerminalView @JvmOverloads constructor(
 
         override fun commitText(text: CharSequence, newCursorPosition: Int): Boolean {
             view.session?.let {
-                TerminalManager.writeToSession(it, text.toString().toByteArray())
+                TerminalManager.writeToSession(it, text.toString().toByteArray(Charsets.UTF_8))
             }
             return true
         }
@@ -701,7 +701,7 @@ class TerminalView @JvmOverloads constructor(
         if (clip != null && clip.itemCount > 0) {
             val text = clip.getItemAt(0).coerceToText(context)
             session?.let {
-                TerminalManager.writeToSession(it, text.toString().toByteArray())
+                TerminalManager.writeToSession(it, text.toString().toByteArray(Charsets.UTF_8))
             }
         }
     }
@@ -737,10 +737,13 @@ class TerminalView @JvmOverloads constructor(
     }
 
     /**
-     * Send control key sequence.
+     * Send control key sequence, respecting current modifier toggle state.
      */
     fun sendControlKey(keyCode: Int) {
-        val event = KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, KeyEvent.META_CTRL_ON)
+        var metaState = 0
+        if (isCtrlToggled) metaState = metaState or KeyEvent.META_CTRL_ON
+        if (isAltToggled) metaState = metaState or KeyEvent.META_ALT_ON
+        val event = KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, metaState)
         onKeyDown(keyCode, event)
     }
 }

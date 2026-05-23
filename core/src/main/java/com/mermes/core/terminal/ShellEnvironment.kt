@@ -27,6 +27,7 @@ object ShellEnvironment {
             put("TMPDIR", tmpDir.absolutePath)
             put("TERM", "xterm-256color")
             put("LANG", "en_US.UTF-8")
+            put("LC_ALL", "en_US.UTF-8")
             put("SHELL", "${prefixDir.absolutePath}/bin/bash")
 
             // Termux-compatible app info
@@ -84,6 +85,7 @@ object ShellEnvironment {
             appendLine("export TMPDIR=${prefixDir.absolutePath}/tmp")
             appendLine("export TERM=xterm-256color")
             appendLine("export LANG=en_US.UTF-8")
+            appendLine("export LC_ALL=en_US.UTF-8")
             appendLine("export SHELL=${prefixDir.absolutePath}/bin/bash")
         }
 

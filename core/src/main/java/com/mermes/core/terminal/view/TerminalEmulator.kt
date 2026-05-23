@@ -19,6 +19,11 @@ class TerminalEmulator(
         private const val STATE_CSI_PARAM = 3 // accumulating CSI params
     }
 
+    // UTF-8 decoder state
+    private var utf8CodePoint = 0
+    private var utf8BytesExpected = 0
+    private var utf8Seen = 0
+
     val buffer = TerminalBuffer(columns, rows)
 
     // Cursor position (0-based)
@@ -78,27 +83,58 @@ class TerminalEmulator(
     }
 
     private fun processNormal(b: Int) {
-        when (b) {
-            0x1B -> state = STATE_ESC  // ESC
-            0x08 -> { // Backspace
-                if (cursorCol > 0) cursorCol--
-            }
-            0x09 -> { // Tab
-                cursorCol = ((cursorCol / 8) + 1) * 8
-                if (cursorCol >= columns) cursorCol = columns - 1
-            }
-            0x0A, 0x0B, 0x0C -> { // Line feed
-                lineFeed()
-            }
-            0x0D -> { // Carriage return
-                cursorCol = 0
-                pendingWrap = false
-            }
-            in 0x20..0x7E, in 0x80..0xFF -> { // Printable (ASCII + extended)
+        when {
+            // Control characters (reset UTF-8 state if mid-sequence)
+            b == 0x1B -> { resetUtf8(); state = STATE_ESC }
+            b == 0x08 -> { resetUtf8(); if (cursorCol > 0) cursorCol-- }
+            b == 0x09 -> { resetUtf8(); cursorCol = ((cursorCol / 8) + 1) * 8; if (cursorCol >= columns) cursorCol = columns - 1 }
+            b == 0x0A || b == 0x0B || b == 0x0C -> { resetUtf8(); lineFeed() }
+            b == 0x0D -> { resetUtf8(); cursorCol = 0; pendingWrap = false }
+            b < 0x20 -> { resetUtf8() } // Other control chars ignored
+
+            // ASCII printable (fast path, no UTF-8 needed)
+            b in 0x20..0x7F -> {
+                if (utf8BytesExpected > 0) {
+                    // Was expecting a continuation byte but got ASCII — emit replacement
+                    putChar(0xFFFD)
+                    resetUtf8()
+                }
                 putChar(b)
             }
-            // Other control chars ignored
+
+            // UTF-8: start of multi-byte sequence (110xxxxx, 1110xxxx, 11110xxx)
+            b in 0xC0..0xDF -> { resetUtf8(); utf8CodePoint = b and 0x1F; utf8BytesExpected = 2; utf8Seen = 1 }
+            b in 0xE0..0xEF -> { resetUtf8(); utf8CodePoint = b and 0x0F; utf8BytesExpected = 3; utf8Seen = 1 }
+            b in 0xF0..0xF7 -> { resetUtf8(); utf8CodePoint = b and 0x07; utf8BytesExpected = 4; utf8Seen = 1 }
+
+            // UTF-8: continuation byte (10xxxxxx)
+            b in 0x80..0xBF -> {
+                if (utf8BytesExpected > 0) {
+                    utf8CodePoint = (utf8CodePoint shl 6) or (b and 0x3F)
+                    utf8Seen++
+                    if (utf8Seen == utf8BytesExpected) {
+                        putChar(utf8CodePoint)
+                        resetUtf8()
+                    }
+                } else {
+                    // Stray continuation byte — replacement character
+                    putChar(0xFFFD)
+                }
+            }
+
+            // 0xC0..0xC1 are invalid in UTF-8 (overlong ASCII), 0xF8..0xFF are invalid
+            else -> { putChar(0xFFFD); resetUtf8() }
         }
+    }
+
+    private fun resetUtf8() {
+        if (utf8BytesExpected > 0) {
+            // Incomplete sequence — emit replacement character
+            putChar(0xFFFD)
+        }
+        utf8CodePoint = 0
+        utf8BytesExpected = 0
+        utf8Seen = 0
     }
 
     private fun processEsc(b: Int) {

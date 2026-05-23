@@ -17,6 +17,7 @@
 import os
 import sys
 import subprocess
+import tarfile
 import tempfile
 import shutil
 import struct
@@ -100,88 +101,67 @@ def get_compression(filename):
     return "none"
 
 
+# Python tarfile supports these compression types natively
+_TARFILE_MODE = {
+    "gz": "r:gz",
+    "bz2": "r:bz2",
+    "xz": "r:xz",
+    "none": "r",
+}
+
+_TARFILE_WRITE = {
+    "gz": "w:gz",
+    "bz2": "w:bz2",
+    "xz": "w:xz",
+    "none": "w",
+}
+
+
 def extract_tar(archive_path, dest_dir, compression):
-    """Extract a tar archive with given compression."""
-    if compression == "none":
+    """Extract a tar archive preserving Unix permission bits."""
+    # zst not supported by Python tarfile, decompress first
+    if compression == "zst":
+        zstd_path = shutil.which("zstd")
+        if not zstd_path:
+            raise RuntimeError("zstd not found. Install with: pacman -S zstd")
+        tar_path = archive_path.rstrip(".zst") if archive_path.endswith(".zst") else archive_path + ".tar"
+        print(f"      [zstd] decompressing ...", flush=True)
+        subprocess.run([zstd_path, "-d", archive_path, "-o", tar_path, "-f"], check=True)
         print(f"      [tar] extracting ...", flush=True)
-        subprocess.run(["tar", "xf", archive_path, "-C", dest_dir], check=True)
-        print(f"      [tar] done", flush=True)
-        return
-
-    # For compressed archives: decompress first, then extract tar
-    decompressors = {
-        "xz": ("xz", ["xz", "-d", "-f"]),
-        "gz": ("gzip", ["gzip", "-d", "-f"]),
-        "bz2": ("bzip2", ["bzip2", "-d", "-f"]),
-        "zst": ("zstd", ["zstd", "-d", "-f"]),
-    }
-
-    if compression not in decompressors:
-        raise RuntimeError(f"Unknown compression: {compression}")
-
-    tool_name, base_cmd = decompressors[compression]
-    tool_path = shutil.which(tool_name)
-    if not tool_path:
-        raise RuntimeError(f"'{tool_name}' not found. Install it first (e.g. pacman -S {tool_name})")
-
-    # Strip compression suffix to get tar path
-    suffix = f".{compression}"
-    if archive_path.endswith(suffix):
-        tar_path = archive_path[: -len(suffix)]
+        with tarfile.open(tar_path, "r:") as tf:
+            tf.extractall(dest_dir)
+        if os.path.exists(tar_path) and tar_path != archive_path:
+            os.remove(tar_path)
     else:
-        tar_path = archive_path + ".tar"
-
-    print(f"      [{tool_name}] decompressing ...", flush=True)
-    subprocess.run(base_cmd + [archive_path], check=True)
-
-    print(f"      [tar] extracting ...", flush=True)
-    subprocess.run(["tar", "xf", tar_path, "-C", dest_dir], check=True)
-
-    if os.path.exists(tar_path) and tar_path != archive_path:
-        os.remove(tar_path)
+        mode = _TARFILE_MODE.get(compression, "r")
+        print(f"      [tar] extracting ({compression}) ...", flush=True)
+        with tarfile.open(archive_path, mode) as tf:
+            tf.extractall(dest_dir)
     print(f"      [tar] done", flush=True)
 
 
 def create_tar(source_dir, output_path, compression):
-    """Create a tar archive from source_dir."""
-    if compression == "none":
+    """Create a tar archive preserving Unix permission bits from extracted files."""
+    # zst not supported by Python tarfile, compress after packing
+    if compression == "zst":
+        zstd_path = shutil.which("zstd")
+        if not zstd_path:
+            raise RuntimeError("zstd not found")
+        tar_path = output_path.rstrip(".zst") if output_path.endswith(".zst") else output_path + ".tar"
         print(f"      [tar] packing ...", flush=True)
-        subprocess.run(["tar", "cf", output_path, "-C", source_dir, "."], check=True)
-        print(f"      [tar] done", flush=True)
-        return
-
-    # For compressed archives: create tar first, then compress
-    compressors = {
-        "xz": ("xz", ["xz", "-z", "-f"]),
-        "gz": ("gzip", ["gzip", "-f"]),
-        "bz2": ("bzip2", ["bzip2", "-f"]),
-        "zst": ("zstd", ["zstd", "-f"]),
-    }
-
-    if compression not in compressors:
-        raise RuntimeError(f"Unknown compression: {compression}")
-
-    tool_name, base_cmd = compressors[compression]
-    tool_path = shutil.which(tool_name)
-    if not tool_path:
-        raise RuntimeError(f"'{tool_name}' not found. Install it first (e.g. pacman -S {tool_name})")
-
-    suffix = f".{compression}"
-    if output_path.endswith(suffix):
-        tar_path = output_path[: -len(suffix)]
+        with tarfile.open(tar_path, "w:") as tf:
+            for entry in os.listdir(source_dir):
+                tf.add(os.path.join(source_dir, entry), arcname=entry)
+        print(f"      [zstd] compressing ...", flush=True)
+        subprocess.run([zstd_path, "-o", output_path, tar_path, "-f"], check=True)
+        if os.path.exists(tar_path) and tar_path != output_path:
+            os.remove(tar_path)
     else:
-        tar_path = output_path + ".tar"
-
-    print(f"      [tar] packing ...", flush=True)
-    subprocess.run(["tar", "cf", tar_path, "-C", source_dir, "."], check=True)
-
-    print(f"      [{tool_name}] compressing ...", flush=True)
-    subprocess.run(base_cmd + [tar_path], check=True)
-
-    # xz/gzip/bzip2 compress in-place (tar_path becomes output_path)
-    # zstd with no -o creates output_path separately
-    if tar_path != output_path and os.path.exists(tar_path):
-        os.remove(tar_path)
+        mode = _TARFILE_WRITE.get(compression, "w")
+        print(f"      [tar] packing ({compression}) ...", flush=True)
+        with tarfile.open(output_path, mode) as tf:
+            for entry in os.listdir(source_dir):
+                tf.add(os.path.join(source_dir, entry), arcname=entry)
     print(f"      [tar] done", flush=True)
 
 
