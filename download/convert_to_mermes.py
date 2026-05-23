@@ -102,50 +102,87 @@ def get_compression(filename):
 
 def extract_tar(archive_path, dest_dir, compression):
     """Extract a tar archive with given compression."""
-    if compression == "zst":
-        zstd_path = shutil.which("zstd")
-        if zstd_path:
-            tar_path = archive_path.rstrip(".zst")
-            subprocess.run(
-                [zstd_path, "-d", archive_path, "-o", tar_path, "-f"],
-                check=True, capture_output=True,
-            )
-            subprocess.run(
-                ["tar", "xf", tar_path, "-C", dest_dir],
-                check=True, capture_output=True,
-            )
-            os.remove(tar_path)
-        else:
-            raise RuntimeError("zstd command not found. Install with: brew install zstd")
+    if compression == "none":
+        print(f"      [tar] extracting ...", flush=True)
+        subprocess.run(["tar", "xf", archive_path, "-C", dest_dir], check=True)
+        print(f"      [tar] done", flush=True)
+        return
+
+    # For compressed archives: decompress first, then extract tar
+    decompressors = {
+        "xz": ("xz", ["xz", "-d", "-f"]),
+        "gz": ("gzip", ["gzip", "-d", "-f"]),
+        "bz2": ("bzip2", ["bzip2", "-d", "-f"]),
+        "zst": ("zstd", ["zstd", "-d", "-f"]),
+    }
+
+    if compression not in decompressors:
+        raise RuntimeError(f"Unknown compression: {compression}")
+
+    tool_name, base_cmd = decompressors[compression]
+    tool_path = shutil.which(tool_name)
+    if not tool_path:
+        raise RuntimeError(f"'{tool_name}' not found. Install it first (e.g. pacman -S {tool_name})")
+
+    # Strip compression suffix to get tar path
+    suffix = f".{compression}"
+    if archive_path.endswith(suffix):
+        tar_path = archive_path[: -len(suffix)]
     else:
-        flags = {"gz": "z", "xz": "J", "bz2": "j", "none": ""}
-        flag = flags.get(compression, "")
-        cmd = ["tar", f"xf{flag}", archive_path, "-C", dest_dir]
-        subprocess.run(cmd, check=True, capture_output=True)
+        tar_path = archive_path + ".tar"
+
+    print(f"      [{tool_name}] decompressing ...", flush=True)
+    subprocess.run(base_cmd + [archive_path], check=True)
+
+    print(f"      [tar] extracting ...", flush=True)
+    subprocess.run(["tar", "xf", tar_path, "-C", dest_dir], check=True)
+
+    if os.path.exists(tar_path) and tar_path != archive_path:
+        os.remove(tar_path)
+    print(f"      [tar] done", flush=True)
 
 
 def create_tar(source_dir, output_path, compression):
     """Create a tar archive from source_dir."""
-    if compression == "zst":
-        tar_path = output_path.rstrip(".zst")
-        subprocess.run(
-            ["tar", "cf", tar_path, "-C", source_dir, "."],
-            check=True, capture_output=True,
-        )
-        zstd_path = shutil.which("zstd")
-        if zstd_path:
-            subprocess.run(
-                [zstd_path, "-o", output_path, tar_path, "-f"],
-                check=True, capture_output=True,
-            )
-            os.remove(tar_path)
-        else:
-            raise RuntimeError("zstd command not found")
+    if compression == "none":
+        print(f"      [tar] packing ...", flush=True)
+        subprocess.run(["tar", "cf", output_path, "-C", source_dir, "."], check=True)
+        print(f"      [tar] done", flush=True)
+        return
+
+    # For compressed archives: create tar first, then compress
+    compressors = {
+        "xz": ("xz", ["xz", "-z", "-f"]),
+        "gz": ("gzip", ["gzip", "-f"]),
+        "bz2": ("bzip2", ["bzip2", "-f"]),
+        "zst": ("zstd", ["zstd", "-f"]),
+    }
+
+    if compression not in compressors:
+        raise RuntimeError(f"Unknown compression: {compression}")
+
+    tool_name, base_cmd = compressors[compression]
+    tool_path = shutil.which(tool_name)
+    if not tool_path:
+        raise RuntimeError(f"'{tool_name}' not found. Install it first (e.g. pacman -S {tool_name})")
+
+    suffix = f".{compression}"
+    if output_path.endswith(suffix):
+        tar_path = output_path[: -len(suffix)]
     else:
-        flags = {"gz": "z", "xz": "J", "bz2": "j", "none": ""}
-        flag = flags.get(compression, "")
-        cmd = ["tar", f"cf{flag}", output_path, "-C", source_dir, "."]
-        subprocess.run(cmd, check=True, capture_output=True)
+        tar_path = output_path + ".tar"
+
+    print(f"      [tar] packing ...", flush=True)
+    subprocess.run(["tar", "cf", tar_path, "-C", source_dir, "."], check=True)
+
+    print(f"      [{tool_name}] compressing ...", flush=True)
+    subprocess.run(base_cmd + [tar_path], check=True)
+
+    # xz/gzip/bzip2 compress in-place (tar_path becomes output_path)
+    # zstd with no -o creates output_path separately
+    if tar_path != output_path and os.path.exists(tar_path):
+        os.remove(tar_path)
+    print(f"      [tar] done", flush=True)
 
 
 def replace_in_file(filepath, old_bytes, new_bytes):
@@ -231,6 +268,7 @@ def convert_deb(input_path, output_path):
     """Convert a single deb package from com.termux to com.mermes."""
     with tempfile.TemporaryDirectory() as tmpdir:
         # Step 1: Extract ar archive using pure Python
+        print(f"      extracting deb (ar) ...", flush=True)
         try:
             members = ar_extract(input_path)
         except Exception as e:
@@ -275,12 +313,15 @@ def convert_deb(input_path, output_path):
             return False
 
         # Step 3: Replace in file contents
+        print(f"      replacing com.termux -> com.mermes ...", flush=True)
         files_changed = replace_in_tree(data_dir)
         # Step 4: Rename paths
         paths_changed = rename_comtermux_paths(data_dir)
 
         if files_changed == 0 and paths_changed == 0:
             print(f"    No com.termux references found, copying as-is")
+        else:
+            print(f"      {files_changed} files, {paths_changed} paths renamed", flush=True)
 
         # Step 5: Recreate data.tar
         new_data_path = os.path.join(tmpdir, "new_" + data_name)
@@ -293,6 +334,7 @@ def convert_deb(input_path, output_path):
             new_data_bytes = f.read()
 
         # Step 6: Extract control.tar, replace, repack
+        print(f"      processing control ...", flush=True)
         control_dir = os.path.join(tmpdir, "control")
         os.makedirs(control_dir)
         control_tar_path = os.path.join(tmpdir, control_name)
