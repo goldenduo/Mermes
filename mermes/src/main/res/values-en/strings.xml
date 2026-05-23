@@ -19,7 +19,7 @@
     <string name="nav_chat">Chat</string>
     <string name="nav_kanban">Kanban</string>
     <string name="nav_memory">Memory</string>
-    <string name="nav_gateway">Gateway</string>
+    <string name="nav_settings">Settings</string>
 
     <!-- Splash -->
     <string name="splash_title">Mermes</string>

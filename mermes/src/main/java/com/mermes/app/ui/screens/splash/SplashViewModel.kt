@@ -225,8 +225,7 @@ class SplashViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private suspend fun checkConnectionConfig(): Boolean {
-        val sshConfigs = connectionRepository.getAllSshConfigs()
-        return sshConfigs.isNotEmpty()
+        return connectionRepository.getPersistedConnectionMode() != null
     }
 
     fun retryCheck() {

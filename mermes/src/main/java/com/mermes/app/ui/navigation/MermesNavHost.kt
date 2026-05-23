@@ -15,7 +15,6 @@ import com.mermes.app.ui.screens.chat.ChatScreen
 import com.mermes.app.ui.screens.sessions.SessionsScreen
 import com.mermes.app.ui.screens.memory.MemoryScreen
 import com.mermes.app.ui.screens.kanban.KanbanScreen
-import com.mermes.app.ui.screens.gateway.GatewayScreen
 import com.mermes.app.ui.screens.skills.SkillsScreen
 import com.mermes.app.ui.screens.soul.SoulScreen
 import com.mermes.app.ui.screens.models.ModelsScreen
@@ -117,14 +116,6 @@ fun MermesNavHost(
             )
         }
 
-        // 平台网关
-        composable(Screen.Gateway.route) {
-            GatewayScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
-            )
-        }
-
         // 插件技能
         composable(Screen.Skills.route) {
             SkillsScreen(
@@ -168,14 +159,13 @@ fun MermesNavHost(
             )
         }
 
-        // 全局设置
+        // 全局设置 (底部导航 Tab，此路由供子页面返回时恢复)
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
                 onNavigateToSshConfigs = { navController.navigate(Screen.SshConfigs.route) },
                 onNavigateToProviders = { navController.navigate(Screen.Providers.route) },
                 onNavigateToModels = { navController.navigate(Screen.Models.route) },
-                onDisconnect = {
+                onNavigateToWelcome = {
                     isAuthenticated = false
                     navController.navigate(Screen.Welcome.route) {
                         popUpTo(0) { inclusive = true }

@@ -1,6 +1,10 @@
 package com.mermes.app.ui.screens.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,19 +12,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.ModelTraining
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -41,23 +49,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mermes.app.R
+import com.mermes.app.data.model.GatewayPlatform
 import com.mermes.app.ui.screens.splash.ConnectionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit,
     onNavigateToSshConfigs: () -> Unit,
     onNavigateToProviders: () -> Unit,
     onNavigateToModels: () -> Unit,
-    onDisconnect: () -> Unit,
+    onNavigateToWelcome: () -> Unit,
     viewModel: ConnectionViewModel = viewModel()
 ) {
     var isZhLanguage by remember { mutableStateOf(true) }
@@ -72,14 +81,6 @@ fun SettingsScreen(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.back)
-                        )
-                    }
                 }
             )
         }
@@ -128,6 +129,13 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 平台网关配置
+            SettingsSection(title = stringResource(id = R.string.gateway_title)) {
+                GatewaySection()
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // 安全设置
             SettingsSection(title = stringResource(id = R.string.settings_security)) {
                 SettingsToggleItem(
@@ -145,7 +153,7 @@ fun SettingsScreen(
             Button(
                 onClick = {
                     viewModel.disconnect()
-                    onDisconnect()
+                    onNavigateToWelcome()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -176,6 +184,181 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
+
+@Composable
+private fun GatewaySection() {
+    var platforms by remember { mutableStateOf(getMockPlatforms()) }
+
+    Column {
+        platforms.forEach { platform ->
+            PlatformCard(
+                platform = platform,
+                onToggle = { connect ->
+                    platforms = platforms.map {
+                        if (it.id == platform.id) it.copy(isConnected = connect) else it
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun PlatformCard(
+    platform: GatewayPlatform,
+    onToggle: (Boolean) -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val statusColor by animateColorAsState(
+        targetValue = if (platform.isConnected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.error
+        },
+        animationSpec = tween(durationMillis = 500)
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        // 头部
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isExpanded = !isExpanded }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 状态指示灯
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(statusColor)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = platform.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = if (platform.isConnected) stringResource(id = R.string.gateway_connected) else stringResource(id = R.string.gateway_disconnected),
+                    fontSize = 11.sp,
+                    color = statusColor
+                )
+            }
+
+            Switch(
+                checked = platform.isConnected,
+                onCheckedChange = onToggle
+            )
+
+            IconButton(onClick = { isExpanded = !isExpanded }) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "收起" else "展开",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // 展开的配置表单
+        if (isExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            ) {
+                platform.config.forEach { (key, value) ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { /* TODO: 更新配置 */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        label = { Text(key) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable { /* TODO: 保存配置 */ }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "保存配置",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getMockPlatforms(): List<GatewayPlatform> {
+    return listOf(
+        GatewayPlatform(
+            id = "telegram",
+            name = "Telegram",
+            icon = "telegram",
+            isConnected = true,
+            config = mapOf(
+                "Bot Token" to "123456:ABC-DEF",
+                "Chat ID" to "-100123456789"
+            )
+        ),
+        GatewayPlatform(
+            id = "discord",
+            name = "Discord",
+            icon = "discord",
+            isConnected = false,
+            config = mapOf(
+                "Webhook URL" to "https://discord.com/api/webhooks/...",
+                "Channel ID" to "123456789"
+            )
+        ),
+        GatewayPlatform(
+            id = "feishu",
+            name = "飞书",
+            icon = "feishu",
+            isConnected = false,
+            config = mapOf(
+                "App ID" to "",
+                "App Secret" to ""
+            )
+        ),
+        GatewayPlatform(
+            id = "wecom",
+            name = "企业微信",
+            icon = "wecom",
+            isConnected = false,
+            config = mapOf(
+                "Corp ID" to "",
+                "Agent ID" to "",
+                "Secret" to ""
+            )
+        )
+    )
 }
 
 @Composable

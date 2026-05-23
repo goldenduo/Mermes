@@ -130,6 +130,7 @@ class ConnectionRepositoryImpl(
             val result = currentExecutor?.execute("echo 'connected'")
             if (result != null) {
                 _connectionState.value = SshConnectionState.Connected("local")
+                persistConnectionMode(ConnectionMode.LOCAL)
                 MermesLog.i("ConnectionRepo", "Local connection established")
             } else {
                 _connectionState.value = SshConnectionState.Error("Failed to establish local connection")
@@ -156,6 +157,7 @@ class ConnectionRepositoryImpl(
             val result = currentExecutor?.execute("echo 'connected'")
             if (result != null) {
                 _connectionState.value = SshConnectionState.Connected("http")
+                persistConnectionMode(ConnectionMode.HTTP)
                 MermesLog.i("ConnectionRepo", "HTTP connection established to ${config.serverUrl}")
             } else {
                 _connectionState.value = SshConnectionState.Error("Failed to connect to ${config.serverUrl}")
@@ -188,6 +190,7 @@ class ConnectionRepositoryImpl(
             val result = currentExecutor?.execute("echo 'connected'")
             if (result != null) {
                 _connectionState.value = SshConnectionState.Connected(config.id)
+                persistConnectionMode(ConnectionMode.SSH)
 
                 // 更新最后连接时间
                 val updatedConfig = config.copy(lastConnectedAt = System.currentTimeMillis())
@@ -208,7 +211,39 @@ class ConnectionRepositoryImpl(
         currentExecutor = null
         _connectionState.value = SshConnectionState.Disconnected
         _currentMode.value = null
+        clearPersistedConnectionMode()
         MermesLog.i("ConnectionRepo", "Disconnected")
+    }
+
+    override suspend fun getPersistedConnectionMode(): ConnectionMode? {
+        return try {
+            val prefs = context.connectionDataStore.data.first()
+            val modeStr = prefs[CURRENT_MODE_KEY] ?: return null
+            ConnectionMode.valueOf(modeStr)
+        } catch (e: Exception) {
+            MermesLog.e("ConnectionRepo", "Failed to get persisted connection mode", e)
+            null
+        }
+    }
+
+    override suspend fun clearPersistedConnectionMode() {
+        try {
+            context.connectionDataStore.edit { prefs ->
+                prefs.remove(CURRENT_MODE_KEY)
+            }
+        } catch (e: Exception) {
+            MermesLog.e("ConnectionRepo", "Failed to clear persisted connection mode", e)
+        }
+    }
+
+    private suspend fun persistConnectionMode(mode: ConnectionMode) {
+        try {
+            context.connectionDataStore.edit { prefs ->
+                prefs[CURRENT_MODE_KEY] = mode.name
+            }
+        } catch (e: Exception) {
+            MermesLog.e("ConnectionRepo", "Failed to persist connection mode", e)
+        }
     }
 
     override suspend fun testSshConnection(config: SshConfig): SshTestResult {

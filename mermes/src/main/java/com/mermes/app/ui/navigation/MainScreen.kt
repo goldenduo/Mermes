@@ -25,7 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import com.mermes.app.ui.screens.chat.ChatScreen
 import com.mermes.app.ui.screens.kanban.KanbanScreen
 import com.mermes.app.ui.screens.memory.MemoryScreen
-import com.mermes.app.ui.screens.gateway.GatewayScreen
+import com.mermes.app.ui.screens.settings.SettingsScreen
 
 data class BottomNavItem(
     val route: String,
@@ -44,7 +44,7 @@ fun MainScreen(
         BottomNavItem(Screen.Chat.route, Icons.Default.Chat, "Chat"),
         BottomNavItem(Screen.Kanban.route, Icons.Default.Dashboard, "Kanban"),
         BottomNavItem(Screen.Memory.route, Icons.Default.Memory, "Memory"),
-        BottomNavItem(Screen.Gateway.route, Icons.Default.Settings, "Gateway")
+        BottomNavItem(Screen.Settings.route, Icons.Default.Settings, "Settings")
     )
 
     Scaffold(
@@ -97,10 +97,16 @@ fun MainScreen(
                 )
             }
 
-            composable(Screen.Gateway.route) {
-                GatewayScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateToSshConfigs = { navController.navigate(Screen.SshConfigs.route) },
+                    onNavigateToProviders = { navController.navigate(Screen.Providers.route) },
+                    onNavigateToModels = { navController.navigate(Screen.Models.route) },
+                    onNavigateToWelcome = {
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
         }

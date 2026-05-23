@@ -35,4 +35,10 @@ interface ConnectionRepository {
 
     // 获取当前连接配置
     suspend fun getCurrentConfig(): ConnectionConfig?
+
+    // 获取已持久化的连接模式（用于启动时判断是否跳过欢迎页）
+    suspend fun getPersistedConnectionMode(): ConnectionMode?
+
+    // 清除已持久化的连接模式（断开连接时调用）
+    suspend fun clearPersistedConnectionMode()
 }

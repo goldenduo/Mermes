@@ -19,7 +19,7 @@
     <string name="nav_chat">对话</string>
     <string name="nav_kanban">看板</string>
     <string name="nav_memory">记忆</string>
-    <string name="nav_gateway">网关</string>
+    <string name="nav_settings">设置</string>
 
     <!-- 启动屏 -->
     <string name="splash_title">Mermes</string>

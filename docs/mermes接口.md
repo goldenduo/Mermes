@@ -337,7 +337,7 @@ Log.e("MermesInit", "Fatal error occurred during unzip", exception)
 
 ## 6. 错误语义多语言翻译契约 (I18nTranslator)
 
-为支撑界面对标 3.15 Settings 与 5.2 节的免重启 Bilingual 交互，底层 `common` 模块提供 `MermesI18nTranslator` 错误包装器，对 SSH 连接、Termux 运行或 Python 脚本抛出的原生英文报错提供精准的语义解析并翻译成普通用户易懂的本地化语言。
+为支撑界面对标 3.7 Settings 与 5.2 节的免重启 Bilingual 交互，底层 `common` 模块提供 `MermesI18nTranslator` 错误包装器，对 SSH 连接、Termux 运行或 Python 脚本抛出的原生英文报错提供精准的语义解析并翻译成普通用户易懂的本地化语言。
 
 ### 6.1 翻译器契约接口 (`MermesI18nTranslator.kt`)
 ```kotlin

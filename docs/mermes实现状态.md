@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-本次重构将 mermes 从传统的 Activity/Fragment 架构迁移到现代的 Jetpack Compose + MVVM 架构，实现了需求文档中的 15 个功能模块。
+本次重构将 mermes 从传统的 Activity/Fragment 架构迁移到现代的 Jetpack Compose + MVVM 架构，实现了需求文档中的 14 个功能模块。
 
 ## 技术栈
 
@@ -41,8 +41,9 @@
 - **KanbanScreen**: 泳道标签、任务列表
 - **TaskCard**: 任务详情、阻塞状态、负责人
 
-### 6. 平台网关 (Gateway) ✅
-- **GatewayScreen**: 手风琴面板、状态监控
+### 6. 设置页面 (Settings) ✅
+- **SettingsScreen**: 设置分组、语言切换、网关配置
+- **GatewaySection**: 手风琴面板、状态监控（网关配置作为设置页的子区域）
 - **PlatformCard**: 连接状态、配置表单
 
 ### 7. 插件技能 (Skills & Plugins) ✅
@@ -70,16 +71,11 @@
 - **ToolCard**: 工具状态、高风险警告
 - **McpServerCard**: 服务器状态、协议信息
 
-### 13. 全局设置 (Settings) ✅
-- **SettingsScreen**: 设置分组、语言切换
-- **SettingsItem**: 导航项
-- **SettingsToggleItem**: 开关项
-
-### 14. 办公协同 (Office - Claw3D) ✅
+### 13. 办公协同 (Office - Claw3D) ✅
 - **OfficeScreen**: WebView 挂载、快捷操作
 - **SettingsPanel**: 端口配置、日志查看
 
-### 15. 连接管理 (Connection) ✅
+### 14. 连接管理 (Connection) ✅
 - **ConnectionRepositoryImpl**: SSH/HTTP/本地连接管理
 - **ConnectionViewModel**: 连接状态、配置管理
 - **TerminalCommandExecutor**: 命令执行器接口
@@ -135,9 +131,9 @@ Splash
             ├─> Chat (智能对话)
             ├─> Kanban (任务看板)
             ├─> Memory (长期记忆)
-            └─> Gateway (平台网关)
+            └─> Settings (设置 + 网关配置)
 
-其他页面 (从 Home 或 Settings 进入):
+其他页面 (从 Home 进入):
 - Sessions (历史会话)
 - Skills (插件技能)
 - Soul (灵魂设定)
@@ -145,7 +141,6 @@ Splash
 - Providers (提供商)
 - Schedules (定时任务)
 - Tools (工具与 MCP)
-- Settings (全局设置)
 - Office (办公协同)
 - SshConfigs (SSH 配置)
 ```
@@ -166,11 +161,13 @@ Splash
 
 ## 待完成事项
 
-1. **流式响应**: 实现 SSE 或 WebSocket 流式消息
-2. **附件功能**: 实现图片拍摄、文件选择
-3. **通知服务**: 实现 SSH 隧道和 Bootstrap 的前台服务
-4. **国际化**: 完善 strings.xml 资源文件
-5. **测试**: 添加单元测试和 UI 测试
+1. **连接模式选择界面持久化**: 用户返回选择界面后，下次启动应仍停留在选择界面，不自动跳过
+2. **底部导航 Gateway → Settings 改造**: 将底部导航的 Gateway tab 改为 Settings tab，网关配置移入设置页
+3. **流式响应**: 实现 SSE 或 WebSocket 流式消息
+4. **附件功能**: 实现图片拍摄、文件选择
+5. **通知服务**: 实现 SSH 隧道和 Bootstrap 的前台服务
+6. **国际化**: 完善 strings.xml 资源文件
+7. **测试**: 添加单元测试和 UI 测试
 
 ## 文件结构
 
