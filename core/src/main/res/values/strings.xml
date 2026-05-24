@@ -9,6 +9,7 @@
     <string name="key_end">END</string>
     <string name="key_pgup">PGUP</string>
     <string name="key_pgdn">PGDN</string>
+    <string name="key_keyboard">KBD</string>
 
     <!-- Session Management -->
     <string name="session_new">New Session</string>

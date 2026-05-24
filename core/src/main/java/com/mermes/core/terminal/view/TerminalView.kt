@@ -202,6 +202,7 @@ class TerminalView @JvmOverloads constructor(
             context = context,
             callback = sessionCallback
         )
+        session.emulator = this.emulator
         this.session = session
         startCursorBlink()
     }
@@ -215,6 +216,7 @@ class TerminalView @JvmOverloads constructor(
             context = context,
             callback = sessionCallback
         )
+        session.emulator = this.emulator
         this.session = session
         startCursorBlink()
     }
@@ -235,7 +237,14 @@ class TerminalView @JvmOverloads constructor(
         val columns = termColumns.coerceAtLeast(80)
         val rows = termRows.coerceAtLeast(24)
 
-        val emu = TerminalEmulator(columns, rows)
+        // 复用该 Session 持有的仿真器实例，若无则初始化
+        var emu = newSession.emulator
+        if (emu == null) {
+            emu = TerminalEmulator(columns, rows)
+            newSession.emulator = emu
+        } else {
+            emu.resize(columns, rows)
+        }
         emulator = emu
 
         val ren = TerminalRenderer(context, emu, colorScheme)
@@ -811,4 +820,7 @@ class TerminalView @JvmOverloads constructor(
         val event = KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, metaState)
         onKeyDown(keyCode, event)
     }
+
+    fun getColumnCount(): Int = termColumns
+    fun getRowCount(): Int = termRows
 }

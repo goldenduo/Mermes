@@ -9,6 +9,7 @@
     <string name="key_end">END</string>
     <string name="key_pgup">上页</string>
     <string name="key_pgdn">下页</string>
+    <string name="key_keyboard">键盘</string>
 
     <!-- 会话管理 -->
     <string name="session_new">新建会话</string>

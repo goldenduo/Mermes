@@ -47,7 +47,7 @@
 
         <LinearLayout
             android:id="@+id/extraKeysLayout"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingTop="4dp"
@@ -60,7 +60,7 @@
                 Matches: ['ESC','/',{key: '-', popup: '|'},'HOME','UP','END','PGUP']
             -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="36dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
@@ -70,9 +70,10 @@
                 <Button
                     android:id="@+id/btnEsc"
                     style="@style/Widget.AppCompat.Button.Small"
-                    android:layout_width="50dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_esc"
                     android:textColor="#FFFFFFFF"
@@ -83,9 +84,10 @@
                 <!-- / -->
                 <Button
                     android:id="@+id/btnSlash"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -97,9 +99,10 @@
                 <!-- - (long press for |) -->
                 <Button
                     android:id="@+id/btnMinus"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -111,9 +114,10 @@
                 <!-- | (popup key from '-', shown as separate button) -->
                 <Button
                     android:id="@+id/btnPipe"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.0"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF3A3A3A"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -122,26 +126,13 @@
                     android:textColor="#FFAAAAAA"
                     android:textSize="15sp" />
 
-                <!-- HOME -->
-                <Button
-                    android:id="@+id/btnHome"
-                    style="@style/Widget.AppCompat.Button.Small"
-                    android:layout_width="56dp"
-                    android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
-                    android:background="#FF2D2D2D"
-                    android:text="@string/key_home"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="11sp"
-                    android:padding="0dp"
-                    android:textAllCaps="true" />
-
                 <!-- UP -->
                 <Button
                     android:id="@+id/btnUp"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.0"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -150,13 +141,29 @@
                     android:textColor="#FFFFFFFF"
                     android:textSize="15sp" />
 
+                <!-- HOME -->
+                <Button
+                    android:id="@+id/btnHome"
+                    style="@style/Widget.AppCompat.Button.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.0"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="3dp"
+                    android:background="#FF2D2D2D"
+                    android:text="@string/key_home"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="11sp"
+                    android:padding="0dp"
+                    android:textAllCaps="true" />
+
                 <!-- END -->
                 <Button
                     android:id="@+id/btnEnd"
                     style="@style/Widget.AppCompat.Button.Small"
-                    android:layout_width="50dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_end"
                     android:textColor="#FFFFFFFF"
@@ -168,7 +175,8 @@
                 <Button
                     android:id="@+id/btnPgUp"
                     style="@style/Widget.AppCompat.Button.Small"
-                    android:layout_width="56dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.4"
                     android:layout_height="32dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_pgup"
@@ -184,7 +192,7 @@
                 Matches: ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']
             -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="36dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
@@ -193,9 +201,10 @@
                 <Button
                     android:id="@+id/btnTab"
                     style="@style/Widget.AppCompat.Button.Small"
-                    android:layout_width="50dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_tab"
                     android:textColor="#FFFFFFFF"
@@ -206,9 +215,10 @@
                 <!-- CTRL (ToggleButton — tri-state modifier) -->
                 <ToggleButton
                     android:id="@+id/btnCtrl"
-                    android:layout_width="56dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_ctrl"
                     android:textOff="@string/key_ctrl"
@@ -221,9 +231,10 @@
                 <!-- ALT (ToggleButton — tri-state modifier) -->
                 <ToggleButton
                     android:id="@+id/btnAlt"
-                    android:layout_width="50dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_alt"
                     android:textOff="@string/key_alt"
@@ -236,9 +247,10 @@
                 <!-- LEFT -->
                 <Button
                     android:id="@+id/btnLeft"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.0"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -250,9 +262,10 @@
                 <!-- DOWN -->
                 <Button
                     android:id="@+id/btnDown"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.0"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -264,9 +277,10 @@
                 <!-- RIGHT -->
                 <Button
                     android:id="@+id/btnRight"
-                    android:layout_width="36dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.0"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="3dp"
                     android:background="#FF2D2D2D"
                     android:padding="0dp"
                     android:minWidth="0dp"
@@ -275,11 +289,27 @@
                     android:textColor="#FFFFFFFF"
                     android:textSize="15sp" />
 
+                <!-- KEYBOARD (Soft keyboard toggle) -->
+                <Button
+                    android:id="@+id/btnKeyboard"
+                    style="@style/Widget.AppCompat.Button.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="3dp"
+                    android:background="#FF2D2D2D"
+                    android:text="@string/key_keyboard"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="11sp"
+                    android:padding="0dp"
+                    android:textAllCaps="true" />
+
                 <!-- PGDN -->
                 <Button
                     android:id="@+id/btnPgDn"
                     style="@style/Widget.AppCompat.Button.Small"
-                    android:layout_width="56dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.4"
                     android:layout_height="32dp"
                     android:background="#FF2D2D2D"
                     android:text="@string/key_pgdn"

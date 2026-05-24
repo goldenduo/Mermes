@@ -44,6 +44,11 @@ class TerminalSession(
     var title: String = ""
 
     /**
+     * Each session maintains its own terminal emulator buffer
+     */
+    var emulator: com.mermes.core.terminal.view.TerminalEmulator? = null
+
+    /**
      * Whether the session process is still running.
      */
     val isRunning: Boolean get() = state == State.RUNNING

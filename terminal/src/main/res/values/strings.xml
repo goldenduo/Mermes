@@ -5,21 +5,4 @@
     <string name="splash_deb">Installing %1$s (%2$d/%3$d)…</string>
     <string name="splash_done">Installation completed, starting…</string>
     <string name="splash_bootstrap_failed">Bootstrap installation failed, entered failsafe mode</string>
-    <string name="failsafe_notice">Bootstrap installation failed, currently in failsafe mode (/system/bin/sh)</string>
-
-    <!-- Shortcut Keys -->
-    <string name="shortcut_esc">ESC</string>
-    <string name="shortcut_ctrl">CTRL</string>
-    <string name="shortcut_alt">ALT</string>
-    <string name="shortcut_tab">TAB</string>
-    <string name="shortcut_keyboard">KEYBOARD</string>
-    <string name="shortcut_home">HOME</string>
-    <string name="shortcut_end">END</string>
-    <string name="shortcut_pgup">PGUP</string>
-    <string name="shortcut_pgdn">PGDN</string>
-    <string name="shortcut_paste">PASTE</string>
-    <string name="shortcut_enter">ENTER</string>
-    <string name="shortcut_space">SPACE</string>
-
-    <string name="text_copied">Selected text copied to clipboard</string>
 </resources>

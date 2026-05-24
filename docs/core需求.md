@@ -47,23 +47,24 @@
 **功能描述**:
 将 `TerminalFragment` 完全移入 `core` 模块，彻底重构为支持 **Termux 式多 Session** 的完整终端界面。
 
-#### 4.1 快捷键布局 — 严格遵照 Termux 官方 DEFAULT_IVALUE_EXTRA_KEYS
+#### 4.1 快捷键布局 — 响应式满屏等宽对齐与精细布局
 
-参照 Termux 官方 `TermuxPropertyConstants.java` 中定义的：
-```
-DEFAULT_IVALUE_EXTRA_KEYS = "[['ESC','/',{key: '-', popup: '|'},'HOME','UP','END','PGUP'], ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]"
-```
+为了让快捷键栏在任何不同尺寸、分辨率的 Android 设备（从折叠屏到窄屏手机）上均能**百分之百完美占满屏幕宽度（与屏幕等宽），且两排按键从左到右像素级绝对对齐**，我们引入了基于 Android `LinearLayout` 响应式比例（`layout_weight`）的黄金权重设计：
 
-**双行按键排列**（必须严格一致）：
+**双行按键响应式比例（Weight）排布**（Row 1 与 Row 2 各 8 个按键，左右两端对齐占满屏幕）：
 ```
-Row 1: [ESC]  [/]  [-]  [HOME]  [UP]    [END]   [PGUP]
-Row 2: [TAB]  [CTRL] [ALT] [LEFT]  [DOWN]  [RIGHT] [PGDN]
+Row 1: [ESC:1.2] [/:1.2]    [-:1.2]   [|:1.0]    [UP:1.0]     [HOME:1.0]  [END:1.2]      [PGUP:1.4]
+Row 2: [TAB:1.2] [CTRL:1.2] [ALT:1.2] [LEFT:1.0] [DOWN:1.0]   [RIGHT:1.0] [KEYBOARD:1.2] [PGDN:1.4]
 ```
+*注：每一个按键的 `android:layout_width` 均设为 `0dp`，并根据上述列权重（Col 1 至 Col 8）分配对应的 `android:layout_weight`，间距（marginEnd）统一为 `3dp`。*
 
-注意：
-- `-` 键有 popup 键 `|`（Termux 原版实现为长按弹出 `|`，我们可以简化为两者都单独显示，`-` 和 `|` 各自一个按钮）
-- 不再有 `ENTER`、`SPACE`、`KEYBOARD`、`PASTE` 单独行，这些移到顶部操作栏或通过其他方式实现
-- 当前已有实现与此不符，需重新对齐
+**对齐与尺寸优化设计规则**：
+- **百分之百满屏等宽**：双行外层容器均设为 `match_parent` 占满屏幕。通过给 Row 1 和 Row 2 的第 $i$ 列按键配置**完全相同的 layout_weight**，无论屏幕多宽，两排对应的按键其物理起始 X 轴、宽度和终点均百分之百重合，两行与屏幕完全等宽，彻底杜绝参差不齐的观感。
+- **ALT 极简等宽瘦身**：第二行的 `ALT` 权重缩减为 **`1.2`**，与同一行前导的 `TAB` (1.2) 和 `CTRL` (1.2) 权重完全相同、等宽并排。这使 `ALT` 彻底告别臃肿，形成高度统一的紧凑修饰键模块。
+- **方向键十字星绝对对齐**：
+  - Row 1 的 `UP` (↑) 位于第 5 列，权重为 **`1.0`**；Row 2 的 `DOWN` (↓) 同样位于第 5 列，权重为 **`1.0`**。两按键在垂直投影线上百分之百像素重合对齐。
+  - 第二行搭配第 4 列的 `LEFT` (←:1.0) 与第 6 列的 `RIGHT` (→:1.0)。这四个方向控制键的权重全部相等（均为 1.0），在任何宽度下均为绝对等宽，并与 Row 1 的 `UP` 拼装出完美的十字方向星。
+- **翻页键等宽对齐**：行尾第 8 列的 `PGUP` (上页) 和 `PGDN` (下页) 均分配最大的 **`1.4`** 权重，在确保中英文长文本完美直显的同时，上下完全投射等宽对齐。
 
 #### 4.2 多 Session 支持 — 参照 Termux 的 Session 管理
 
@@ -74,13 +75,16 @@ Row 2: [TAB]  [CTRL] [ALT] [LEFT]  [DOWN]  [RIGHT] [PGDN]
 - **关闭 Session**：关闭当前活跃会话，自动切换到邻近会话；如果是最后一个 session，则退出或显示提示
 - **Session 列表 UI**：提供一个可显示/隐藏的会话列表抽屉或面板（可以是简单的顶部 Tab 条或侧滑列表）
 
-**Session 数据模型扩展**：
+**Session 数据模型扩展与仿真器绑定**：
 `TerminalSession` 需要增加：
 - `name: String`：会话自定义名称
 - `title: String`：Shell 动态标题（由 OSC 8 等终端转义序列更新）
 - `isRunning: Boolean`：会话是否仍在运行
+- `emulator: TerminalEmulator?`：每一个 `TerminalSession` 实例自主独立持有一个专属的仿真器状态及屏幕缓冲区（`TerminalEmulator`）。这样在切换会话时，后台会话能继续接收并流式更新仿真器缓存，而切回前台时界面可无损展现历史状态。
 
-**Session 行为规则**（参照 Termux）：
+**Session 行为与数据流通路规则**（参照 Termux）：
+- **数据转发归宿**：`TerminalFragment` 在创建会话时注入的回调，其 `onTextChanged` 接收到底层 I/O 线程从 PTY 读入的数据后，必须先将其喂给对应的 `session.emulator`；若该 Session 处于当前前台激活状态，则调度 UI 线程使 `TerminalView` 执行重绘（`invalidate()`）。
+- **仿真器复用与 Resize**：`TerminalView` 切换挂载 Session (`attachSession`) 时，应复用该 Session 内已保存的 `emulator`，若尚未创建则进行初始化挂载，并立即重算其行列宽，向底层 PTY 申请 `setwinsize` 自适应宿主空间。
 - 会话关闭后（Shell 退出）显示 `[Process completed (exit X) - Press Enter to close]` 提示
 - 支持 `Ctrl+C` 发送中断信号
 - 支持通过会话标题（`mSessionName`）在 UI 中识别区分多个会话

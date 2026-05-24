@@ -212,15 +212,26 @@ class TerminalFragment : Fragment() {
         val sessionNumber = sessions.size + 1
         val callback = object : TerminalSessionCallback {
             override fun onTextChanged(session: TerminalSession, data: ByteArray) {
-                // TerminalView feeds data directly from PTY; handled by TerminalManager's I/O thread
+                // 收到底层 PTY 的数据，分发给该会话的专属仿真器
+                session.emulator?.append(data)
+
+                // 如果是当前正在显示的会话，调度 UI 线程进行局部重绘
+                if (session == currentSession) {
+                    activity?.runOnUiThread {
+                        terminalView?.invalidate()
+                    }
+                }
             }
 
             override fun onSessionFinished(session: TerminalSession, exitCode: Int) {
                 activity?.runOnUiThread {
                     // Show exit notice in the terminal (emulate Termux behavior)
                     val notice = getString(R.string.session_finished, exitCode)
-                    terminalView?.printText("\r\n$notice\r\n")
+                    session.emulator?.append("\r\n$notice\r\n".toByteArray(Charsets.UTF_8))
                     rebuildSessionTabs()
+                    if (session == currentSession) {
+                        terminalView?.invalidate()
+                    }
                 }
             }
 
@@ -229,7 +240,7 @@ class TerminalFragment : Fragment() {
             }
         }
 
-        return if (isFailsafe) {
+        val session = if (isFailsafe) {
             TerminalManager.createFailsafeSession(ctx, callback).also { s ->
                 s.name = getString(R.string.session_default_name)
             }
@@ -238,6 +249,21 @@ class TerminalFragment : Fragment() {
                 s.name = "$sessionNumber: ${getString(R.string.session_default_name)}"
             }
         }
+
+        // 初始化该会话专属的终端仿真器状态，默认先赋予宿主尺寸或 80 * 24 尺寸
+        val cols = terminalView?.getColumnCount()?.coerceAtLeast(80) ?: 80
+        val rows = terminalView?.getRowCount()?.coerceAtLeast(24) ?: 24
+        session.emulator = com.mermes.core.terminal.view.TerminalEmulator(cols, rows).apply {
+            onUpdate = {
+                if (session == currentSession) {
+                    activity?.runOnUiThread {
+                        terminalView?.invalidate()
+                    }
+                }
+            }
+        }
+
+        return session
     }
 
     /**
@@ -419,6 +445,11 @@ class TerminalFragment : Fragment() {
         // RIGHT — repeatable
         view.findViewById<Button>(R.id.btnRight).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_RIGHT)
+        }
+
+        // KEYBOARD — toggle soft keyboard (single fire)
+        view.findViewById<Button>(R.id.btnKeyboard).setOnClickListener {
+            tv.toggleKeyboard()
         }
 
         // PGDN — repeatable

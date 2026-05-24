@@ -3,6 +3,7 @@ package com.mermes.app
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import com.mermes.core.terminal.TerminalFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -16,6 +17,7 @@ class MainActivity : AppCompatActivity() {
 
         if (savedInstanceState == null) {
             val failsafe = intent.getBooleanExtra(EXTRA_FAILSAFE, false)
+            // 直接使用 core 模块提供的 TerminalFragment，不在 terminal 模块重复实现
             val fragment = TerminalFragment.newInstance(failsafe)
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)
