@@ -119,11 +119,11 @@ class TerminalView @JvmOverloads constructor(
                     menu.add(0, 1, 0, android.R.string.copy)
                     return true
                 }
-                
+
                 override fun onPrepareActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean {
                     return false
                 }
-                
+
                 override fun onActionItemClicked(mode: android.view.ActionMode, item: android.view.MenuItem): Boolean {
                     if (item.itemId == 1) {
                         val text = copySelection()
@@ -135,7 +135,7 @@ class TerminalView @JvmOverloads constructor(
                     }
                     return false
                 }
-                
+
                 override fun onDestroyActionMode(mode: android.view.ActionMode) {
                     actionMode = null
                     isSelecting = false
@@ -219,6 +219,49 @@ class TerminalView @JvmOverloads constructor(
         startCursorBlink()
     }
 
+    /**
+     * Attach an already-created TerminalSession to this view.
+     * Use this for multi-session switching — the session is NOT closed when switching away.
+     *
+     * @param newSession The session to display
+     */
+    fun attachSession(newSession: TerminalSession) {
+        // Detach without closing the old session
+        stopCursorBlink()
+        session = null
+        emulator = null
+        renderer = null
+
+        val columns = termColumns.coerceAtLeast(80)
+        val rows = termRows.coerceAtLeast(24)
+
+        val emu = TerminalEmulator(columns, rows)
+        emulator = emu
+
+        val ren = TerminalRenderer(context, emu, colorScheme)
+        ren.setTextSize(textSizeSp)
+        renderer = ren
+
+        emu.onUpdate = { post { invalidate() } }
+
+        session = newSession
+        // Resize PTY to current view size
+        TerminalManager.setPtyWindowSize(newSession, rows, columns)
+        startCursorBlink()
+        invalidate()
+    }
+
+    /**
+     * Print a text string directly into the terminal emulator buffer.
+     * Useful for showing notices like exit codes without going through PTY.
+     *
+     * @param text Text to display (supports \r\n)
+     */
+    fun printText(text: String) {
+        emulator?.append(text.toByteArray(Charsets.UTF_8))
+        post { invalidate() }
+    }
+
     private fun initEmulator() {
         detachSession()
 
@@ -236,7 +279,8 @@ class TerminalView @JvmOverloads constructor(
     }
 
     /**
-     * Detach the current session.
+     * Detach the current session and close it.
+     * Only call this when you want to permanently end the session.
      */
     fun detachSession() {
         stopCursorBlink()
@@ -278,8 +322,8 @@ class TerminalView @JvmOverloads constructor(
         val sCol: Int
         val eRow: Int
         val eCol: Int
-        
-        if (selectionStartRow < selectionEndRow || 
+
+        if (selectionStartRow < selectionEndRow ||
             (selectionStartRow == selectionEndRow && selectionStartCol <= selectionEndCol)) {
             sRow = selectionStartRow
             sCol = selectionStartCol
@@ -296,9 +340,9 @@ class TerminalView @JvmOverloads constructor(
 
     private fun isCellSelected(col: Int, row: Int): Boolean {
         if (!isSelecting) return false
-        
+
         val (sRow, sCol, eRow, eCol) = getNormalizedSelection()
-        
+
         if (row < sRow || row > eRow) return false
         if (row > sRow && row < eRow) return true
         if (sRow == eRow) {
@@ -317,7 +361,7 @@ class TerminalView @JvmOverloads constructor(
         super.onDraw(canvas)
         val r = renderer
         r?.render(canvas, cursorVisible, scrollOffset)
-        
+
         // Draw selection highlight on top
         if (isSelecting && termColumns > 0 && termRows > 0 && r != null) {
             for (row in 0 until termRows) {
@@ -360,7 +404,7 @@ class TerminalView @JvmOverloads constructor(
             .coerceAtMost(viewHeight * termRows / totalLines)
         val barWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, scrollbarWidthDp, resources.displayMetrics)
 
-        // Position: scrollOffset=0 → bottom, scrollOffset=sbCount → top
+        // Position: scrollOffset=0 -> bottom, scrollOffset=sbCount -> top
         val scrollFraction = if (sbCount > 0) scrollOffset.toFloat() / sbCount else 0f
         val barTop = (viewHeight - barHeightPx) * (1f - scrollFraction)
         val barRight = width.toFloat()
@@ -481,79 +525,94 @@ class TerminalView @JvmOverloads constructor(
 
     // --- Keyboard input ---
 
+    /**
+     * Central input funnel. All keyboard input (hardware + soft) flows through here.
+     * Handles Ctrl+letter mapping and Alt ESC prefix.
+     *
+     * @param codePoint Unicode code point to send
+     * @param controlDown Whether Ctrl modifier is active
+     * @param leftAltDown Whether Alt modifier is active
+     */
+    fun inputCodePoint(codePoint: Int, controlDown: Boolean, leftAltDown: Boolean) {
+        if (codePoint < 0) return
+
+        // Ctrl+letter -> control character (0x01-0x1A)
+        if (controlDown && codePoint in 'A'.code..'Z'.code) {
+            sendCodePoint(codePoint - 64)
+            return
+        }
+        // Ctrl+space -> NUL
+        if (controlDown && codePoint == ' '.code) {
+            sendCodePoint(0)
+            return
+        }
+
+        // Alt prefix: send ESC before the character
+        if (leftAltDown) {
+            sendRawBytes(byteArrayOf(0x1B))
+        }
+
+        // Send the character as UTF-8
+        sendCodePoint(codePoint)
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) return super.onKeyDown(keyCode, event)
         val session = this.session ?: return super.onKeyDown(keyCode, event)
 
-        when (keyCode) {
-            KeyEvent.KEYCODE_ENTER -> {
-                sendChar('\r')
-                return true
-            }
-            KeyEvent.KEYCODE_DEL -> {
-                sendChar(0x7F.toChar())
-                return true
-            }
-            KeyEvent.KEYCODE_TAB -> {
-                sendChar('\t')
-                return true
-            }
-            KeyEvent.KEYCODE_ESCAPE -> {
-                sendChar('\u001B')
-                return true
-            }
-            KeyEvent.KEYCODE_DPAD_UP -> sendEscape("[A")
-            KeyEvent.KEYCODE_DPAD_DOWN -> sendEscape("[B")
-            KeyEvent.KEYCODE_DPAD_RIGHT -> sendEscape("[C")
-            KeyEvent.KEYCODE_DPAD_LEFT -> sendEscape("[D")
-            KeyEvent.KEYCODE_MOVE_HOME -> {
-                sendEscape("[H")
-                return true
-            }
-            KeyEvent.KEYCODE_MOVE_END -> {
-                sendEscape("[F")
-                return true
-            }
-            KeyEvent.KEYCODE_PAGE_UP -> {
-                sendEscape("[5~")
-                return true
-            }
-            KeyEvent.KEYCODE_PAGE_DOWN -> {
-                sendEscape("[6~")
-                return true
-            }
-            else -> {
-                val ch = event.unicodeChar
-                if (ch != 0) {
-                    val c = ch.toChar()
-                    val ctrl = event.isCtrlPressed || isCtrlToggled
-                    val alt = event.isAltPressed || isAltToggled
+        val metaState = event.metaState
+        val ctrlDown = (metaState and KeyEvent.META_CTRL_ON) != 0 || isCtrlToggled
+        val altDown = (metaState and KeyEvent.META_ALT_ON) != 0 || isAltToggled
 
-                    // Reset toggles after processing a character key
-                    if (isCtrlToggled || isAltToggled) {
-                        isCtrlToggled = false
-                        isAltToggled = false
-                    }
-
-                    if (ctrl && c in 'a'..'z') {
-                        sendChar((c - 'a' + 1).toChar())
-                    } else if (alt) {
-                        // Alt+char is sent as ESC followed by the char
-                        sendEscape(c.toString())
-                    } else {
-                        sendChar(c)
-                    }
-                    return true
-                }
-                return super.onKeyDown(keyCode, event)
+        // Try Ctrl+key special mapping first
+        if (ctrlDown) {
+            val mapped = KeyHandler.getKeyCode(keyCode, metaState or KeyEvent.META_CTRL_ON)
+            if (mapped != -1) {
+                resetModifiers()
+                inputCodePoint(mapped, controlDown = false, leftAltDown = false)
+                return true
             }
         }
-        return true
+
+        // Build modifier bitmask for KeyHandler
+        var keyMod = 0
+        if (ctrlDown) keyMod = keyMod or KeyHandler.KEYMOD_CTRL
+        if (altDown) keyMod = keyMod or KeyHandler.KEYMOD_ALT
+        if ((metaState and KeyEvent.META_SHIFT_ON) != 0) keyMod = keyMod or KeyHandler.KEYMOD_SHIFT
+
+        // Ask KeyHandler for escape sequence
+        val code = KeyHandler.getCode(keyCode, keyMod, cursorApp = false, keypadApplication = false)
+        if (code != null) {
+            resetModifiers()
+            sendText(code)
+            return true
+        }
+
+        // Fallback: send unicode character directly
+        val ch = event.unicodeChar
+        if (ch != 0) {
+            resetModifiers()
+            inputCodePoint(ch, controlDown = false, leftAltDown = altDown)
+            return true
+        }
+
+        return super.onKeyDown(keyCode, event)
     }
 
-    private fun sendChar(ch: Char) {
+    private fun resetModifiers() {
+        if (isCtrlToggled || isAltToggled) {
+            isCtrlToggled = false
+            isAltToggled = false
+        }
+    }
+
+    /**
+     * Send a Unicode code point as UTF-8 bytes to the PTY session.
+     */
+    internal fun sendCodePoint(codePoint: Int) {
         session?.let {
-            TerminalManager.writeToSession(it, ch.toString().toByteArray(Charsets.UTF_8))
+            val bytes = String(intArrayOf(codePoint), 0, 1).toByteArray(Charsets.UTF_8)
+            TerminalManager.writeToSession(it, bytes)
         }
     }
 
@@ -566,9 +625,12 @@ class TerminalView @JvmOverloads constructor(
         }
     }
 
-    private fun sendEscape(seq: String) {
+    /**
+     * Send raw bytes to the PTY session.
+     */
+    private fun sendRawBytes(bytes: ByteArray) {
         session?.let {
-            TerminalManager.writeToSession(it, "\u001B$seq".toByteArray(Charsets.UTF_8))
+            TerminalManager.writeToSession(it, bytes)
         }
     }
 
@@ -584,15 +646,18 @@ class TerminalView @JvmOverloads constructor(
         BaseInputConnection(view, true) {
 
         override fun commitText(text: CharSequence, newCursorPosition: Int): Boolean {
-            view.session?.let {
-                TerminalManager.writeToSession(it, text.toString().toByteArray(Charsets.UTF_8))
+            // Route through inputCodePoint for each character
+            for (i in text.indices) {
+                val cp = Character.codePointAt(text, i)
+                view.inputCodePoint(cp, controlDown = false, leftAltDown = false)
+                if (Character.isSupplementaryCodePoint(cp)) i + 1 // skip surrogate
             }
             return true
         }
 
         override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean {
             for (i in 0 until beforeLength) {
-                view.sendChar(0x7F.toChar())
+                view.sendCodePoint(0x7F) // DEL
             }
             return true
         }
@@ -606,7 +671,7 @@ class TerminalView @JvmOverloads constructor(
 
         override fun performEditorAction(actionCode: Int): Boolean {
             if (actionCode == EditorInfo.IME_ACTION_DONE) {
-                view.sendChar('\r')
+                view.sendCodePoint('\r'.code)
                 return true
             }
             return super.performEditorAction(actionCode)
@@ -653,18 +718,18 @@ class TerminalView @JvmOverloads constructor(
      * Copy selected text to clipboard.
      */
     fun copySelection(): String? {
-        if (selectionStartCol == -1 || selectionStartRow == -1 || 
+        if (selectionStartCol == -1 || selectionStartRow == -1 ||
             selectionEndCol == -1 || selectionEndRow == -1) return null
 
         val emu = emulator ?: return null
         val (sRow, sCol, eRow, eCol) = getNormalizedSelection()
         val sb = StringBuilder()
-        
+
         for (r in sRow..eRow) {
             val line = emu.buffer.getScreenRow(r)
             val startC = if (r == sRow) sCol else 0
             val endC = if (r == eRow) eCol else emu.columns - 1
-            
+
             val rowText = StringBuilder()
             for (c in startC..endC) {
                 if (c < line.codePoints.size) {
@@ -681,7 +746,7 @@ class TerminalView @JvmOverloads constructor(
                 sb.append("\n")
             }
         }
-        
+
         val selectedText = sb.toString()
         if (selectedText.isNotEmpty()) {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

@@ -20,9 +20,9 @@ class TerminalEmulator(
     }
 
     // UTF-8 decoder state
-    private var utf8CodePoint = 0
     private var utf8BytesExpected = 0
     private var utf8Seen = 0
+    private val utf8InputBuffer = IntArray(4)
 
     val buffer = TerminalBuffer(columns, rows)
 
@@ -83,56 +83,106 @@ class TerminalEmulator(
     }
 
     private fun processNormal(b: Int) {
+        // Control characters (reset UTF-8 state if mid-sequence)
         when {
-            // Control characters (reset UTF-8 state if mid-sequence)
-            b == 0x1B -> { resetUtf8(); state = STATE_ESC }
-            b == 0x08 -> { resetUtf8(); if (cursorCol > 0) cursorCol-- }
-            b == 0x09 -> { resetUtf8(); cursorCol = ((cursorCol / 8) + 1) * 8; if (cursorCol >= columns) cursorCol = columns - 1 }
-            b == 0x0A || b == 0x0B || b == 0x0C -> { resetUtf8(); lineFeed() }
-            b == 0x0D -> { resetUtf8(); cursorCol = 0; pendingWrap = false }
-            b < 0x20 -> { resetUtf8() } // Other control chars ignored
+            b == 0x1B -> { resetUtf8(); state = STATE_ESC; return }
+            b == 0x08 -> { resetUtf8(); if (cursorCol > 0) cursorCol--; return }
+            b == 0x09 -> { resetUtf8(); cursorCol = ((cursorCol / 8) + 1) * 8; if (cursorCol >= columns) cursorCol = columns - 1; return }
+            b == 0x0A || b == 0x0B || b == 0x0C -> { resetUtf8(); lineFeed(); return }
+            b == 0x0D -> { resetUtf8(); cursorCol = 0; pendingWrap = false; return }
+            b < 0x20 -> { resetUtf8(); return } // Other control chars ignored
+        }
 
-            // ASCII printable (fast path, no UTF-8 needed)
-            b in 0x20..0x7F -> {
-                if (utf8BytesExpected > 0) {
-                    // Was expecting a continuation byte but got ASCII — emit replacement
-                    putChar(0xFFFD)
-                    resetUtf8()
-                }
-                putChar(b)
+        // ASCII printable (fast path, no UTF-8 needed)
+        if (b in 0x20..0x7F) {
+            if (utf8BytesExpected > 0) {
+                putChar(0xFFFD)
+                resetUtf8()
             }
+            putChar(b)
+            return
+        }
 
-            // UTF-8: start of multi-byte sequence (110xxxxx, 1110xxxx, 11110xxx)
-            b in 0xC0..0xDF -> { resetUtf8(); utf8CodePoint = b and 0x1F; utf8BytesExpected = 2; utf8Seen = 1 }
-            b in 0xE0..0xEF -> { resetUtf8(); utf8CodePoint = b and 0x0F; utf8BytesExpected = 3; utf8Seen = 1 }
-            b in 0xF0..0xF7 -> { resetUtf8(); utf8CodePoint = b and 0x07; utf8BytesExpected = 4; utf8Seen = 1 }
-
-            // UTF-8: continuation byte (10xxxxxx)
-            b in 0x80..0xBF -> {
-                if (utf8BytesExpected > 0) {
-                    utf8CodePoint = (utf8CodePoint shl 6) or (b and 0x3F)
-                    utf8Seen++
-                    if (utf8Seen == utf8BytesExpected) {
-                        putChar(utf8CodePoint)
-                        resetUtf8()
+        // Continuation byte (10xxxxxx)
+        if ((b and 0xC0) == 0x80) {
+            if (utf8BytesExpected > 0) {
+                utf8InputBuffer[utf8Seen++] = b
+                utf8BytesExpected--
+                if (utf8BytesExpected == 0) {
+                    // Decode the complete sequence
+                    val len = utf8Seen
+                    val firstMask = when (len) {
+                        2 -> 0x1F
+                        3 -> 0x0F
+                        4 -> 0x07
+                        else -> 0x7F
                     }
-                } else {
-                    // Stray continuation byte — replacement character
-                    putChar(0xFFFD)
-                }
-            }
+                    var cp = utf8InputBuffer[0] and firstMask
+                    for (i in 1 until len) {
+                        cp = (cp shl 6) or (utf8InputBuffer[i] and 0x3F)
+                    }
 
-            // 0xC0..0xC1 are invalid in UTF-8 (overlong ASCII), 0xF8..0xFF are invalid
-            else -> { putChar(0xFFFD); resetUtf8() }
+                    // Overlong encoding check
+                    val overlong = (cp <= 0x7F && len > 1) ||
+                                   (cp <= 0x7FF && len > 2) ||
+                                   (cp <= 0xFFFF && len > 3)
+
+                    // C1 control characters (0x80-0x9F) — silently ignored per Termux/XTerm
+                    val isC1 = cp in 0x80..0x9F
+
+                    // Surrogate halves (U+D800-U+DFFF) and unassigned
+                    val isSurrogate = cp in 0xD800..0xDFFF
+                    val isTooLarge = cp > 0x10FFFF
+
+                    utf8Seen = 0
+
+                    when {
+                        overlong || isSurrogate || isTooLarge -> putChar(0xFFFD)
+                        !isC1 -> putChar(cp)
+                        // else: C1 control — silently drop
+                    }
+                }
+            } else {
+                // Stray continuation byte
+                putChar(0xFFFD)
+            }
+            return
+        }
+
+        // Lead byte: start of multi-byte sequence
+        if (utf8BytesExpected > 0) {
+            // Was expecting continuation but got a new lead — emit replacement, then process new byte
+            putChar(0xFFFD)
+            utf8Seen = 0
+        }
+
+        when {
+            (b and 0xE0) == 0xC0 -> { // 110xxxxx (2-byte)
+                utf8InputBuffer[0] = b
+                utf8Seen = 1
+                utf8BytesExpected = 1 // 1 more byte needed
+            }
+            (b and 0xF0) == 0xE0 -> { // 1110xxxx (3-byte)
+                utf8InputBuffer[0] = b
+                utf8Seen = 1
+                utf8BytesExpected = 2
+            }
+            (b and 0xF8) == 0xF0 -> { // 11110xxx (4-byte)
+                utf8InputBuffer[0] = b
+                utf8Seen = 1
+                utf8BytesExpected = 3
+            }
+            else -> {
+                // 0xC0, 0xC1, 0xF8-0xFF are invalid UTF-8 lead bytes
+                putChar(0xFFFD)
+            }
         }
     }
 
     private fun resetUtf8() {
         if (utf8BytesExpected > 0) {
-            // Incomplete sequence — emit replacement character
             putChar(0xFFFD)
         }
-        utf8CodePoint = 0
         utf8BytesExpected = 0
         utf8Seen = 0
     }

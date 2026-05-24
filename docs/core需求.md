@@ -2,248 +2,108 @@
 
 ## 功能概述
 
-新增一个 Android AAR 模块 `core`，使用 Kotlin + Gradle KTS 构建。该模块将 Termux 核心功能 SDK 化，包名为 `com.mermes`，提供 bootstrap 安装、伪终端创建、deb 包预安装等核心能力。
+`core` 模块是 Mermes 项目的核心基础 AAR 库模块，包名为 `com.mermes.core`。该模块负责实现 Linux 环境解包部署、Debian 预置依赖包原子级增量安装、伪终端底层 JNI 通信与 UI 渲染组件。
+
+本次更新引入三大核心改造需求：
+1. **终端 Fragment 与 Session 支持移入 Core**：将原 `terminal` 模块下的 `TerminalFragment` 及其相关资源移入 `core` 模块，并**完全实现 Termux 式多 Session 管理**：可创建多个会话、可切换当前活跃会话、可重命名会话、可关闭单个会话。
+2. **快捷键布局与 Termux 完全一致**：`TerminalFragment` 的底部辅助快捷键布局必须**严格参照** `download/termux-app` 中 `DEFAULT_IVALUE_EXTRA_KEYS` 的官方双行排列，键位排列和行为与 Termux 官方 App 完全一致。
+3. **代码级直接命令执行器**：在 `core` 模块中暴露出一个不通过 PTY 终端 UI 界面、直接通过代码调用外部命令的接口，以 `Flow<String>` 实时流式输出，支持随时中断。
+
+---
 
 ## 模块规格
 
 - **模块类型**: Android AAR Library
 - **语言**: Kotlin
 - **构建系统**: Gradle KTS
-- **包名**: `com.mermes`
+- **命名空间**: `com.mermes.core`
 - **最低支持 Android 版本**: API 24 (Android 7.0)
+
+---
 
 ## 功能点
 
 ### 1. Bootstrap 安装流程 (installBootstrap)
+- 保持原 bootstrap 解压部署规范。
+- 运行时通过 JNI `getZip()` 获取嵌入的 zip 字节数组，解密解压到 `$PREFIX` 目录，重建符号链接与权限设置。
+
+### 2. 预安装 Deb 包功能 (DebInstaller)
+- 保持原 deb 预置依赖增量安装规范，使用单独的 `libmermes-deb.so` 数据源。
+- 支持依赖树拓扑排序解析与安装，自动记录并增量跳过已安装包。
+
+### 3. 代码级直接命令执行器 (ShellCommandExecutor) [已实现]
 
 **功能描述**:
-实现类似 Termux 的 bootstrap 安装流程，将预置的 bootstrap zip 解压部署到应用私有目录，创建完整的 Linux 环境。
+提供一个不需要创建 PTY 终端界面，直接由 Kotlin 代码配置和调用 Linux 命令行脚本的执行器。
 
 **实现要求**:
-- 参考 `docs/ex/bootstrap流程.md` 中的 Termux bootstrap 流程
-- bootstrap zip 文件已预先放置在 `download/mermes_bootstrap/` 目录，包含四个架构:
-  - `bootstrap-aarch64.zip` (ARM64)
-  - `bootstrap-arm.zip` (ARM32)
-  - `bootstrap-i686.zip` (x86)
-  - `bootstrap-x86_64.zip` (x86_64)
-- 通过 JNI 将 zip 嵌入 `.so` 的 `.rodata` 段（使用 `.incbin` 汇编指令）
-- 运行时通过 JNI 方法获取 zip 字节数组
+- **直接执行支持**：允许传入任意字符串命令行（例如：`"ls -la"`, `"python3 -m http.server"`），在后台 ProcessBuilder 起子进程独立运行。
+- **自适应环境变量**：自动注入通过 `ShellEnvironment.getEnvironment(context)` 组装的 Termux 环境参数。
+- **流式实时输出**：利用 Kotlin Flow 以 Line-by-Line 形式实时发射 stdout 与 stderr 的混合输出流。
+- **支持主动中断**：提供句柄 `CommandHandle`，允许调用者随时调用 `interrupt()` 强制终止子进程。
 
-**核心流程**:
-1. **前置检查**: 检查 `$PREFIX` 目录是否存在且有效，若已存在则跳过安装
-2. **环境清理**: 删除残留的 `usr-staging` 临时目录和损坏的 `usr` 目录
-3. **加载 Native 库**: `System.loadLibrary("mermes-bootstrap")`
-4. **获取 ZIP 字节**: 通过 JNI `getZip()` 方法获取嵌入的 zip 字节数组
-5. **解压 ZIP**: 使用 `ZipInputStream` 逐项解压到 `usr-staging` 目录
-6. **符号链接处理**: 解析 `SYMLINKS.txt`，格式为 `oldPath←linkPath`
-7. **权限设置**: 对 `bin/`、`libexec/`、`lib/apt/` 等目录下的文件设置 `0700` 权限
-8. **创建符号链接**: 使用 `Os.symlink()` 批量创建
-9. **原子替换**: 将 `usr-staging` 重命名为 `usr`，确保原子性
-10. **写入环境变量**: 生成 `PREFIX`、`HOME`、`PATH`、`TMPDIR` 等环境变量配置文件
+### 4. 伪终端 GUI 交互界面与多 Session 管理 (TerminalFragment) [重构]
 
-**目录结构**:
+**功能描述**:
+将 `TerminalFragment` 完全移入 `core` 模块，彻底重构为支持 **Termux 式多 Session** 的完整终端界面。
+
+#### 4.1 快捷键布局 — 严格遵照 Termux 官方 DEFAULT_IVALUE_EXTRA_KEYS
+
+参照 Termux 官方 `TermuxPropertyConstants.java` 中定义的：
 ```
-/data/data/com.mermes/files/
-├── usr/                    # PREFIX 目录 (bootstrap 解压目标)
-│   ├── bin/
-│   ├── lib/
-│   ├── etc/
-│   └── tmp/
-└── home/                   # HOME 目录
+DEFAULT_IVALUE_EXTRA_KEYS = "[['ESC','/',{key: '-', popup: '|'},'HOME','UP','END','PGUP'], ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]"
 ```
 
-### 2. 伪终端与 Bash 工具方法
+**双行按键排列**（必须严格一致）：
+```
+Row 1: [ESC]  [/]  [-]  [HOME]  [UP]    [END]   [PGUP]
+Row 2: [TAB]  [CTRL] [ALT] [LEFT]  [DOWN]  [RIGHT] [PGDN]
+```
 
-**功能描述**:
-实现伪终端(PTY)创建和管理，提供启动 Bash 等 Shell 进程的能力，以及相关的工具方法。
+注意：
+- `-` 键有 popup 键 `|`（Termux 原版实现为长按弹出 `|`，我们可以简化为两者都单独显示，`-` 和 `|` 各自一个按钮）
+- 不再有 `ENTER`、`SPACE`、`KEYBOARD`、`PASTE` 单独行，这些移到顶部操作栏或通过其他方式实现
+- 当前已有实现与此不符，需重新对齐
 
-**实现要求**:
-- 参考 `docs/ex/bash流程.md` 中的 Termux bash 启动流程
-- 通过 JNI 实现 PTY 创建和进程管理
-- 提供 Kotlin 层的会话管理 API
+#### 4.2 多 Session 支持 — 参照 Termux 的 Session 管理
 
-**核心功能**:
+`TerminalFragment` 必须支持：
+- **创建新 Session**：通过 `TerminalManager.createSession(...)` 新建 PTY 会话并注册到内部列表
+- **切换当前 Session**：切换 `TerminalView` 绑定的活跃 Session，并通知底层 PTY 适配
+- **重命名 Session**：允许为每个会话设置自定义名称（如 "[1] bash", "[2] bash"）
+- **关闭 Session**：关闭当前活跃会话，自动切换到邻近会话；如果是最后一个 session，则退出或显示提示
+- **Session 列表 UI**：提供一个可显示/隐藏的会话列表抽屉或面板（可以是简单的顶部 Tab 条或侧滑列表）
 
-#### 2.1 PTY 创建 (JNI 层)
-- 打开 `/dev/ptmx` 获取 Master Fd
-- 调用 `grantpt()`、`unlockpt()`、`ptsname_r()` 获取 Slave 设备名
-- 配置 termios: 启用 `IUTF8`，禁用 `IXON | IXOFF`
-- 返回 Master Fd 和 Slave 设备名
+**Session 数据模型扩展**：
+`TerminalSession` 需要增加：
+- `name: String`：会话自定义名称
+- `title: String`：Shell 动态标题（由 OSC 8 等终端转义序列更新）
+- `isRunning: Boolean`：会话是否仍在运行
 
-#### 2.2 子进程创建 (JNI 层)
-- `fork()` 创建子进程
-- 子进程:
-  - `setsid()` 创建新会话
-  - 打开 Slave Fd
-  - `dup2()` 重定向 stdin/stdout/stderr 到 Slave PTY
-  - 关闭多余 fd (遍历 `/proc/self/fd`)
-  - `clearenv()` + `putenv()` 设置干净环境变量
-  - `chdir()` 切换工作目录
-  - `execvp()` 执行目标程序
-- 父进程: 返回 Master Fd 和子进程 PID
+**Session 行为规则**（参照 Termux）：
+- 会话关闭后（Shell 退出）显示 `[Process completed (exit X) - Press Enter to close]` 提示
+- 支持 `Ctrl+C` 发送中断信号
+- 支持通过会话标题（`mSessionName`）在 UI 中识别区分多个会话
 
-#### 2.3 Kotlin 层 API
-- `createSession(command, cwd, env)`: 创建新的终端会话
-- `writeToSession(sessionId, data)`: 向会话写入数据
-- `readFromSession(sessionId)`: 从会话读取输出
-- `waitForSession(sessionId)`: 等待会话结束
-- `closeSession(sessionId)`: 关闭会话
+#### 4.3 修饰键行为 (CTRL / ALT 三态锁定)
+- 采用和 Termux 相同的三态（普通 → 激活 → 锁定）修饰状态：
+  - **单击**：激活（下次按键后自动复位）
+  - **双击**：锁定（持续激活，不自动复位）
+  - **再次点击**：取消锁定/激活
+- 视觉上用 ToggleButton 高亮区分激活状态
 
-#### 2.4 环境变量组装
-- `HOME`: `/data/data/com.mermes/files/home`
-- `PREFIX`: `/data/data/com.mermes/files/usr`
-- `PATH`: `/data/data/com.mermes/files/usr/bin`
-- `TMPDIR`: `/data/data/com.mermes/files/usr/tmp`
-- `TERM`: `xterm-256color`
+#### 4.4 按键重复触发
+- 导航键（方向键、PGUP/PGDN、HOME/END、ESC、TAB）首次按下立即发送，长按 400ms 后以 80ms 间隔重复发送
+- 文本键（`/`、`-`、`|`）不需要长按重复，单击发送
 
-#### 2.5 Shebang 脚本处理
-- ELF 二进制 (`0x7F ELF`): 直接执行
-- Shebang 脚本 (`#!`): 解析解释器路径，重定向到 `$PREFIX/bin/`
-- 纯文本脚本: 使用 `$PREFIX/bin/sh` 包裹执行
+#### 4.5 PTY 窗口 Resize 自适应
+- 软键盘召唤/关闭，Activity 尺寸改变时，TerminalView 自动重算行高列宽，通知底层 PTY 执行 `setwinsize`
 
-#### 2.6 Failsafe 安全模式
-- 使用 `/system/bin/sh` 作为解释器
-- 不加载 Termux 环境变量
-- 用于诊断和修复损坏的环境
-
-### 3. 预安装 Deb 包功能
-
-**功能描述**:
-支持将预先下载好的 deb 包安装到 bootstrap 环境中，自动处理依赖关系。不再通过 Android assets 复制和存放离线 deb 包，而是像 bootstrap 一样，使用一个唯一的 `.so` 库（`mermes-deb`）存放所有预先安装的 deb 包。预先安装的 deb 目录存放在 `download/mermes_deb`，`.so` 的汇编代码直接依赖并打包该文件夹内所有的 `.deb` 文件，通过 JNI 联合打包，绝不拷贝到 C++ 源文件目录。
-
-**实现要求**:
-- deb 包源文件在 `download/mermes_deb/` 目录，按架构分类:
-  - `arm64/` (aarch64)
-  - `arm32/` (arm)
-  - `x64/` (x86_64)
-  - `x86/` (i686)
-- **直接依赖打包**：通过自定义 Gradle 任务 `packageDebs`，在构建前自动将对应架构的 deb 包压缩为 `debs-{arch}.zip`。在 C++ CMake 构建阶段，使用 ASM 汇编 `.incbin` 指令直接读取打包，绝不拷贝文件到 C++ 源文件目录。
-- **两个核心 Gradle 任务**:
-  1. `packageBootstrap`: 打包 bootstrap zip，触发 native 编译生成包含 bootstrap 文件的 `libmermes-bootstrap.so`。
-  2. `packageDebs`: 打包预安装 deb 文件的 zip 压缩包，触发 native 编译生成包含所有 deb 文件的 `libmermes-deb.so`。
-- 支持依赖树分析，从叶子节点开始安装。
-- 自动检测已安装的包，支持增量安装（跳过已安装的包）。
-- 提供 `isAllPresetInstalled()` 方法判断是否所有预置包已安装。
-
-**预置 deb 包列表 (以 arm64 为例)**:
-- `ca-certificates` - SSL 证书
-- `gdbm` - 数据库
-- `libandroid-posix-semaphore` - POSIX 信号量
-- `libandroid-support` - Android 支持库
-- `libbz2` - bzip2 压缩库
-- `libcrypt` - 加密库
-- `libexpat` - XML 解析库
-- `libffi` - 外部函数接口库
-- `liblzma` - LZMA 压缩库
-- `libsqlite` - SQLite 数据库
-- `libtalloc` - 内存分配库
-- `ncurses` / `ncurses-ui-libs` - 终端 UI 库
-- `openssl` - SSL/TLS 库
-- `proot` / `proot-distro` - 用户空间 root 工具
-- `python` - Python 解释器
-- `readline` - 命令行编辑库
-- `zlib` - 压缩库
-
-**核心流程**:
-
-#### 3.1 依赖树解析
-- 解析每个 deb 包的 `control` 文件获取依赖信息。
-- 构建依赖图 (DAG)。
-- 使用拓扑排序算法，从叶子节点（无依赖的包）开始安装。
-
-#### 3.2 Deb 包解压安装
-- 解析 deb 文件 structure (ar 格式):
-  - `control.tar.xz`: 包含包元数据和控制脚本。
-  - `data.tar.xz`: 包含实际文件。
-- 解压 `data.tar.xz` 到 `$PREFIX` 目录。
-- 执行 `preinst`、`postinst` 等安装脚本。
-
-#### 3.3 从 Native SO 加载
-- 运行时，通过 `NativeDebLib.getZip()` 获取包含所有 deb 包的 zip 字节数组。
-- 使用 `ZipInputStream` 在内存中遍历并提取对应包名的 `.deb` 二进制流进行解析和安装。
-- 架构映射: aarch64→arm64, arm→arm32, i686→x86, x86_64→x64。
-
-#### 3.4 安装状态管理
-- 记录已安装的包和版本到 `$PREFIX/etc/mermes/installed_packages.txt`（格式: `name|version`）
-- 支持增量安装（跳过已安装的包）
-- 提供 `isAllPresetInstalled()` 方法，判断所有预置包是否已安装
-- App 模块在启动时自动检测: 若 bootstrap 已安装且所有 preset deb 已安装，直接跳过初始化
-- 每个 deb 包安装时通过 logcat 打印进度和结果（TAG: `DebInstaller`），格式: `[当前/总数] Installed/Failed 包名 版本 (文件数)`
-
-### 4. 伪终端 GUI 交互界面
-
-**功能描述**:
-在 core 模块中实现伪终端的 Android View 组件，参考 Termux 的 TerminalView/TerminalEmulator/TerminalRenderer 架构，提供可嵌入的终端交互界面。
-
-**参考文档**: `docs/ex/伪终端界面实现.md`
-
-**实现要求**:
-- 遵循 MVC 架构：TerminalEmulator（模型）、TerminalView（视图）、TerminalRenderer（渲染）
-- 支持 ANSI 转义序列解析（颜色、光标移动、清屏等）
-- 支持中文等双宽字符（使用 WcWidth 计算字符宽度）
-- 支持软键盘输入和物理键盘输入，支持发送控制键（Ctrl、Esc、上下左右等）
-- 支持显示（召唤）与隐藏（关闭）软键盘
-- 键盘变化时，UI 视图必须自适应变化（触发尺寸重算与底层 PTY 行列自动 resize）
-- 支持文本选择和复制粘贴
-- 光标闪烁动画，界面不可见时停止以节省电量
-
-**核心组件**:
-
-#### 4.1 TerminalEmulator（模型层）
-- 维护终端屏幕缓冲区（TerminalBuffer / TerminalRow）
-- 解析 ANSI 转义序列，更新字符内容和样式
-- 管理光标位置、滚动区域
-- 字符样式：前景色、背景色、粗体、下划线、反色
-
-#### 4.2 TerminalView（视图层）
-- 继承 Android View
-- 处理 onSizeChanged 计算行列数，并在键盘弹出/收起等尺寸变化时正确触发 resize，调整底层 PTY 窗口大小
-- 委托 TerminalRenderer 绘制
-- 捕获键盘事件（onKeyDown/onKeyUp）和触摸事件，支持 Ctrl 等修饰键的状态维护
-- 提供显示和隐藏软键盘的 API 方法
-- 输入法连接（InputConnection）支持软键盘
-- 文本选择与坐标转换（像素 ↔ 行列）
-
-#### 4.3 TerminalRenderer（渲染引擎）
-- 计算字体度量（fontWidth、fontLineSpacing）
-- 优化渲染：合并相同样式连续字符为 Text Run，批量 canvas.drawTextRun()
-- 绘制光标和选中文本高亮
-- 处理中英文字体宽度不匹配的 Scale 修正
-
-#### 4.4 滚动条
-- 终端右侧显示自动隐藏的滚动条指示器
-- 滚动时显示，停止滚动 1.5 秒后渐隐消失
-- 滚动条高度按可见内容比例计算，位置反映当前视口在历史中的位置
-
-#### 4.5 滚动与缓存
-- TerminalBuffer 维护滚动回滚缓冲区（scrollback），默认保留 1000 行历史
-- 超出缓冲区的旧行自动丢弃（环形缓冲区淘汰）
-- 支持触摸滑动手势上下滚动查看历史输出
-- 滚动回顶部/底部时自动跟随新输出
-
-#### 4.5 与 TerminalSession 集成
-- TerminalView 绑定 TerminalSession
-- 接收输出 → TerminalEmulator 解析 → TerminalView 重绘
-- 用户输入 → 转义序列 → TerminalManager.writeToSession()
+---
 
 ## 非功能性需求
 
-### 性能要求
-- Bootstrap 安装应在 30 秒内完成（中端设备）
-- Deb 包安装应支持并行解压（不超过 4 线程）
-- PTY I/O 延迟应低于 10ms
-
-### 兼容性要求
-- 支持 Android API 24+ (Android 7.0+)
-- 支持 ARM64、ARM32、x86_64、x86 四种架构
-- 兼容 Termux 的目录结构和环境变量约定
-
-### 安全要求
-- 所有解压的可执行文件必须设置正确的权限
-- 不泄露应用私有目录路径
-- JNI 层做好异常处理，避免 native crash
-
-### 存储要求
-- Bootstrap 解压后约 100-200MB
-- Deb 包安装后额外占用空间视具体包而定
-- 需要预留足够的存储空间检查
+- 所有 UI 文案支持中英文双语（`values/strings.xml` + `values-en/strings.xml`）
+- 所有 UI 组件遵循 Material Design 3 色彩规范，支持明暗主题自动切换
+- `TerminalView` 背景色为黑色 `#000000`，快捷键栏背景为深色 `#1E1E1E`
+- Session 最大数量建议限制为 8 个（参照 Termux 的软限制）

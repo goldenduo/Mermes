@@ -1,0 +1,25 @@
+<resources>
+    <!-- 快捷键第一行: ESC / - HOME UP END PGUP -->
+    <!-- 快捷键第二行: TAB CTRL ALT LEFT DOWN RIGHT PGDN -->
+    <string name="key_esc">ESC</string>
+    <string name="key_tab">TAB</string>
+    <string name="key_ctrl">CTRL</string>
+    <string name="key_alt">ALT</string>
+    <string name="key_home">HOME</string>
+    <string name="key_end">END</string>
+    <string name="key_pgup">上页</string>
+    <string name="key_pgdn">下页</string>
+
+    <!-- 会话管理 -->
+    <string name="session_new">新建会话</string>
+    <string name="session_close">关闭会话</string>
+    <string name="session_rename">重命名</string>
+    <string name="session_rename_hint">输入会话名称</string>
+    <string name="session_default_name">bash</string>
+    <string name="session_finished">进程已退出（退出码 %1$d）- 按 Enter 关闭</string>
+    <string name="session_max_reached">已达最大会话数（%1$d 个）</string>
+
+    <!-- 终端 UI -->
+    <string name="text_copied">选中文本已复制到剪贴板</string>
+    <string name="failsafe_notice">Bootstrap 安装失败，当前为安全模式（/system/bin/sh）</string>
+</resources>

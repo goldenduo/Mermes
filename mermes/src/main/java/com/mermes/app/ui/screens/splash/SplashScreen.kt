@@ -20,6 +20,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.res.stringResource
+import com.mermes.app.R
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,7 +36,6 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onNavigateToWelcome: () -> Unit,
     onNavigateToHome: () -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
@@ -52,11 +53,7 @@ fun SplashScreen(
     LaunchedEffect(splashState.isReady) {
         if (splashState.isReady) {
             delay(500)
-            if (splashState.hasExistingConfig) {
-                onNavigateToHome()
-            } else {
-                onNavigateToWelcome()
-            }
+            onNavigateToHome()
         }
     }
 
@@ -83,7 +80,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "智能核心控制台",
+                text = stringResource(id = R.string.splash_subtitle),
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
@@ -112,7 +109,7 @@ fun SplashScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "初始化失败: ${splashState.error}",
+                    text = stringResource(id = R.string.splash_install_failed, splashState.error ?: ""),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center
@@ -121,7 +118,7 @@ fun SplashScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = { viewModel.retryCheck() }) {
-                    Text("重试")
+                    Text(stringResource(id = R.string.retry))
                 }
             }
         }

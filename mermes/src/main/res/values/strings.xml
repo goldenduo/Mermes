@@ -197,4 +197,9 @@
     <string name="settings_log_sanitize_desc">自动隐藏敏感信息</string>
     <string name="settings_disconnect">断开连接</string>
     <string name="settings_disconnect_desc">断开连接并返回选择页面</string>
+
+    <!-- 控制台 WebView -->
+    <string name="console_title">Mermes 控制台</string>
+    <string name="console_reload">重新加载</string>
+    <string name="console_open_external">外部浏览器打开</string>
 </resources>

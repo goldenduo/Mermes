@@ -1,8 +1,6 @@
 package com.mermes.app
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -13,9 +11,12 @@ import android.view.KeyEvent
 import android.widget.Button
 import android.widget.ToggleButton
 import com.mermes.core.terminal.TerminalManager
-import com.mermes.core.terminal.TerminalSession
-import com.mermes.core.terminal.TerminalSessionCallback
+import com.mermes.core.terminal.view.SpecialButtonState
 import com.mermes.core.terminal.view.TerminalView
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 class TerminalFragment : Fragment() {
 
@@ -33,6 +34,10 @@ class TerminalFragment : Fragment() {
 
     private var terminalView: TerminalView? = null
     private var isFailsafe = false
+
+    // Modifier key states (three-state: active / locked)
+    private val ctrlState = SpecialButtonState()
+    private val altState = SpecialButtonState()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -62,33 +67,53 @@ class TerminalFragment : Fragment() {
     private fun setupShortcutKeys(view: View) {
         val tv = terminalView ?: return
 
-        // Helper: add long-press repeat to a button
-        fun Button.setRepeatAction(action: () -> Unit) {
-            setOnTouchListener(RepeatTouchListener(action))
-        }
-
-        view.findViewById<Button>(R.id.btnEsc).setRepeatAction {
-            tv.sendControlKey(KeyEvent.KEYCODE_ESCAPE)
-        }
+        // --- Modifier keys (Ctrl/Alt) with SpecialButtonState ---
 
         val btnCtrl = view.findViewById<ToggleButton>(R.id.btnCtrl)
         val btnAlt = view.findViewById<ToggleButton>(R.id.btnAlt)
 
-        btnCtrl.setOnCheckedChangeListener { _, isChecked ->
-            tv.isCtrlToggled = isChecked
-        }
+        ctrlState.isCreated = true
+        altState.isCreated = true
 
-        btnAlt.setOnCheckedChangeListener { _, isChecked ->
-            tv.isAltToggled = isChecked
-        }
-
-        tv.onModifierStatusChanged = { ctrl, alt ->
+        ctrlState.onStateChanged = { active, locked ->
             btnCtrl.setOnCheckedChangeListener(null)
+            btnCtrl.isChecked = active || locked
+            tv.isCtrlToggled = active || locked
+            btnCtrl.setOnCheckedChangeListener { _, _ -> ctrlState.toggle() }
+        }
+
+        altState.onStateChanged = { active, locked ->
             btnAlt.setOnCheckedChangeListener(null)
-            btnCtrl.isChecked = ctrl
-            btnAlt.isChecked = alt
-            btnCtrl.setOnCheckedChangeListener { _, isChecked -> tv.isCtrlToggled = isChecked }
-            btnAlt.setOnCheckedChangeListener { _, isChecked -> tv.isAltToggled = isChecked }
+            btnAlt.isChecked = active || locked
+            tv.isAltToggled = active || locked
+            btnAlt.setOnCheckedChangeListener { _, _ -> altState.toggle() }
+        }
+
+        btnCtrl.setOnCheckedChangeListener { _, _ -> ctrlState.toggle() }
+        btnAlt.setOnCheckedChangeListener { _, _ -> altState.toggle() }
+
+        // Long-press to lock modifier
+        btnCtrl.setOnLongClickListener { ctrlState.toggleLock(); true }
+        btnAlt.setOnLongClickListener { altState.toggleLock(); true }
+
+        // Sync modifier state from TerminalView (e.g., after hardware key press)
+        tv.onModifierStatusChanged = { ctrl, alt ->
+            if (!ctrlState.isLocked) {
+                btnCtrl.setOnCheckedChangeListener(null)
+                btnCtrl.isChecked = ctrl
+                btnCtrl.setOnCheckedChangeListener { _, _ -> ctrlState.toggle() }
+            }
+            if (!altState.isLocked) {
+                btnAlt.setOnCheckedChangeListener(null)
+                btnAlt.isChecked = alt
+                btnAlt.setOnCheckedChangeListener { _, _ -> altState.toggle() }
+            }
+        }
+
+        // --- Repetitive keys (use ScheduledExecutorService for precise timing) ---
+
+        view.findViewById<Button>(R.id.btnEsc).setRepeatAction {
+            tv.sendControlKey(KeyEvent.KEYCODE_ESCAPE)
         }
 
         view.findViewById<Button>(R.id.btnTab).setRepeatAction {
@@ -123,10 +148,6 @@ class TerminalFragment : Fragment() {
             tv.sendControlKey(KeyEvent.KEYCODE_PAGE_DOWN)
         }
 
-        view.findViewById<Button>(R.id.btnPaste).setOnClickListener {
-            tv.pasteFromClipboard()
-        }
-
         view.findViewById<Button>(R.id.btnUp).setRepeatAction {
             tv.sendControlKey(KeyEvent.KEYCODE_DPAD_UP)
         }
@@ -151,9 +172,20 @@ class TerminalFragment : Fragment() {
             tv.sendText(" ")
         }
 
+        // --- Non-repetitive buttons ---
+
+        view.findViewById<Button>(R.id.btnPaste).setOnClickListener {
+            tv.pasteFromClipboard()
+        }
+
         view.findViewById<Button>(R.id.btnKeyboard).setOnClickListener {
             tv.toggleKeyboard()
         }
+    }
+
+    /** Helper: attach KeyRepeatTouchListener to a Button */
+    private fun Button.setRepeatAction(action: () -> Unit) {
+        setOnTouchListener(KeyRepeatTouchListener(action))
     }
 
     private fun startSession() {
@@ -170,9 +202,8 @@ class TerminalFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean {
-        // Send ESC to terminal
         val session = terminalView?.getSession() ?: return false
-        TerminalManager.writeToSession(session, "\u001B".toByteArray(Charsets.UTF_8))
+        TerminalManager.writeToSession(session, "".toByteArray(Charsets.UTF_8))
         return true
     }
 
@@ -183,43 +214,49 @@ class TerminalFragment : Fragment() {
     }
 
     /**
-     * TouchListener that fires action on press, then repeats while held.
+     * TouchListener for repetitive keys (arrows, enter, etc.)
+     * Uses ScheduledExecutorService for precise, consistent repeat timing.
+     * Press → immediate action → 400ms delay → repeat every 80ms.
      */
-    private class RepeatTouchListener(
+    private class KeyRepeatTouchListener(
         private val action: () -> Unit
     ) : View.OnTouchListener {
-        private val handler = Handler(Looper.getMainLooper())
-        private var isRepeating = false
-
-        private val repeatRunnable = object : Runnable {
-            override fun run() {
-                action()
-                handler.postDelayed(this, REPEAT_INTERVAL_MS)
-            }
-        }
+        private var executor: ScheduledExecutorService? = null
+        private var future: ScheduledFuture<*>? = null
+        private var longPressCount = 0
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     v.isPressed = true
                     action()
-                    isRepeating = true
-                    handler.postDelayed(repeatRunnable, REPEAT_DELAY_MS)
+                    longPressCount = 0
+                    executor = Executors.newSingleThreadScheduledExecutor()
+                    future = executor?.scheduleWithFixedDelay({
+                        longPressCount++
+                        action()
+                    }, LONG_PRESS_TIMEOUT_MS, REPEAT_INTERVAL_MS, TimeUnit.MILLISECONDS)
                     return true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.isPressed = false
-                    isRepeating = false
-                    handler.removeCallbacks(repeatRunnable)
+                    stopRepeat()
                     return true
                 }
             }
             return false
         }
 
+        private fun stopRepeat() {
+            future?.cancel(false)
+            executor?.shutdown()
+            executor = null
+            future = null
+        }
+
         companion object {
-            private const val REPEAT_DELAY_MS = 400L   // delay before repeat starts
-            private const val REPEAT_INTERVAL_MS = 80L  // repeat interval
+            private const val LONG_PRESS_TIMEOUT_MS = 400L
+            private const val REPEAT_INTERVAL_MS = 80L
         }
     }
 }
