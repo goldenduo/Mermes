@@ -41,6 +41,21 @@ proot-distro login hermes -- bash -c "
 
     pip install --upgrade pip
     pip install -e .
+    cd ..
+    if [ ! -d \"hermes-webui\" ]; then
+            git clone --branch v0.51.134 --depth 1 https://github.com/nesquena/hermes-webui.git
+            rm -rf hermes-webui/.git
+    fi
 "
+
+proot-distro copy ./webui_bootstrap.py hermes:/root/hermes-webui/webui_bootstrap.py
+
+proot-distro login hermes -- bash -c "
+    cd hermes-agent
+    source venv/bin/activate
+    cd ../hermes-webui
+    python3 webui_bootstrap.py
+"
+
 
 #proot-distro backup hermes --output hermes.tar.gz
