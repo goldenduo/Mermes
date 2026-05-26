@@ -14,3 +14,8 @@ npm -v # Should print "10.9.8".
 
 curl -fsSL https://github.com/iOfficeAI/AionUi/releases/latest/download/install-web.sh | bash
 source /root/.bashrc
+
+
+proot-distro login hermes -- bash -c "
+    /root/backend/mermes-web-ui
+"
