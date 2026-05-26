@@ -1,4 +1,4 @@
-#!/data/data/com.mermes/files/usr/bin/bash
+#!/data/data/com.termux/files/usr/bin/bash
 
 set -e
 
@@ -41,20 +41,19 @@ proot-distro login hermes -- bash -c "
 
     pip install --upgrade pip
     pip install -e .
-    cd ..
-    if [ ! -d \"hermes-webui\" ]; then
-            git clone --branch v0.51.134 --depth 1 https://github.com/syscca/Web3Hermes.git
-            rm -rf hermes-webui/.git
-    fi
 "
 
-proot-distro copy ./webui_bootstrap.py hermes:/root/hermes-webui/webui_bootstrap.py
+proot-distro copy ./webui_bootstrap.py hermes:/root/Web3Hermes/webui_bootstrap.py
 
 proot-distro login hermes -- bash -c "
+    if [ ! -d \"Web3Hermes\" ]; then
+            git clone --depth 1 https://github.com/syscca/Web3Hermes.git
+            rm -rf hermes-webui/.git
+    fi
     cd hermes-agent
     source venv/bin/activate
-    cd ../hermes-webui
-    python3 webui_bootstrap.py
+    cd ../Web3Hermes
+    pip install -r requirements.txt
 "
 
 
