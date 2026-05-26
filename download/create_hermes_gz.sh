@@ -43,7 +43,7 @@ proot-distro login hermes -- bash -c "
     pip install -e .
     cd ..
     if [ ! -d \"hermes-webui\" ]; then
-            git clone --branch v0.51.134 --depth 1 https://github.com/nesquena/hermes-webui.git
+            git clone --branch v0.51.134 --depth 1 https://github.com/syscca/Web3Hermes.git
             rm -rf hermes-webui/.git
     fi
 "
